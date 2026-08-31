@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""Tests de non-régression.  Exécution :  python test_alim.py"""
-
+"""Regression tests. Run: python test_gutcheck.py"""
 import os
 import sys
 import tempfile
@@ -14,7 +13,7 @@ from modele import (CENTRES_LAG, DELAI_MIN, PORTEE_MAX, analyser,
                     construire_controles, construire_exposition,
                     fusionner_indissociables, nn_group_lasso, normaliser,
                     poids_noyaux, preparer_blocs, residualiser)
-from alim import charger_journal
+from gutcheck import charger_journal
 from simu import generer
 
 echecs = []
@@ -180,7 +179,7 @@ verifier(brut[0] == ["date", "", "", "", "douleur"],
 os.unlink(chemin_ods)
 
 print("\nformats de date et d'heure tolérés")
-from alim import analyser_date, analyser_heure
+from gutcheck import analyser_date, analyser_heure
 verifier(analyser_date("2026-08-31") is not None, "ISO")
 verifier(analyser_date("31/08/2026").month == 8, "jour/mois/année (français)")
 verifier(analyser_date("31.08.2026").day == 31, "séparateur point")
