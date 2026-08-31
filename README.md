@@ -1,160 +1,160 @@
 # Installation
 
-Pour installer les dépendances, exécuter :
+To install the dependencies, run:
 
 ```bash
-uv --version                                      # Déjà installé ?
-curl -LsSf https://astral.sh/uv/install.sh | sh   # installation de uv and uvx dans ~/.local/bin
-. ~/.local/bin/env                                # On les ajoute au PATH pour ce shell
-uv --version                                      # 0.9 ou plus est bien.
+uv --version                                      # Already installed?
+curl -LsSf https://astral.sh/uv/install.sh | sh   # installs uv and uvx into ~/.local/bin
+. ~/.local/bin/env                                # add them to PATH for this shell
+uv --version                                      # 0.9 or later is fine.
 ```
 
-Ensuite, installer les dépendances Python :
+Then install the Python dependencies:
 
 ```bash
-uv venv alim
-. alim/bin/activate
+uv venv gutcheck
+. gutcheck/bin/activate
 uv pip install scipy
 ```
 
-# alim — détection d'aliments déclencheurs de douleur
+# gutcheck — detecting foods that trigger pain
 
-Trois contraintes définissent le problème et déterminent tout l'algorithme :
+Three constraints define the problem and drive every design decision in the
+algorithm:
 
-1. **Le décalage est inconnu.** La douleur peut suivre l'ingestion de quelques
-   heures à plus de deux jours, et le délai diffère d'un aliment à l'autre.
-2. **Il y a probablement plusieurs coupables.** Tester les aliments un par un
-   attribue au premier ce qui revient au second dès qu'ils sont corrélés — et
-   ils le sont toujours (les repas se ressemblent).
-3. **Les données sont rares et bruitées.** Un journal de quatre semaines, c'est
-   ~30 aliments à départager sur ~85 relevés de douleur.
+1. **The lag is unknown.** Pain may follow ingestion by anything from a few
+   hours to more than two days, and the delay differs from one food to the next.
+2. **There is probably more than one culprit.** Testing foods one at a time
+   credits the first with what belongs to the second as soon as the two are
+   correlated — and they always are (meals resemble one another).
+3. **Data are scarce and noisy.** A four-week diary means roughly 30 foods to
+   separate on the basis of some 85 pain entries.
 
-## L'algorithme
+## The algorithm
 
-**1 — Exposition à décalage distribué.** La douleur relevée à l'instant *t* est
-modélisée comme la somme des contributions de *tous* les repas passés. Chaque
-aliment reçoit une réponse propre, décrite par 7 noyaux lisses (raised-cosine)
-centrés de 2 h à 60 h. Pas de « décalage à tester » : le profil est estimé.
+**1 — Distributed-lag exposure.** Pain recorded at time *t* is modelled as the
+sum of the contributions of *every* past meal. Each food gets its own response,
+described by 7 smooth (raised-cosine) kernels centred from 2 h to 60 h. There is
+no "lag to test": the profile is estimated.
 
-**2 — Contrôles.** Rythme circadien (harmoniques 24 h et 12 h) et dérive
-linéaire, retirés sans pénalité (Frisch-Waugh-Lovell). Sans cela, un aliment de
-petit-déjeuner hérite mécaniquement du pic de douleur du soir sous l'étiquette
-« décalage de 12 h ».
+**2 — Controls.** Circadian rhythm (24 h and 12 h harmonics) and linear drift,
+partialled out without penalty (Frisch–Waugh–Lovell). Without this, a breakfast
+food mechanically inherits the evening pain peak under the label "12 h lag".
 
-**3 — Blanchiment AR(1).** La douleur est autocorrélée d'un relevé au suivant.
-Non traitée, cette inertie est « expliquée » par des aliments innocents.
+**3 — AR(1) whitening.** Pain is autocorrelated from one entry to the next. Left
+untreated, that inertia gets "explained" by innocent foods.
 
-**4 — Group-lasso positif.** Tous les aliments sont estimés *simultanément*,
-chacun jugé à aliments concurrents constants. Un groupe = un aliment, c'est-à-dire
-ses 7 coefficients de décalage : ils entrent ou sortent ensemble, sinon un vrai
-effet étalé sur plusieurs noyaux paierait la pénalité sur chacun. Coefficients
-contraints ≥ 0 : on cherche des déclencheurs.
+**4 — Non-negative group lasso.** All foods are estimated *simultaneously*, each
+judged with competing foods held constant. One group = one food, meaning its 7
+lag coefficients: they enter or leave together, since otherwise a genuine effect
+spread across several kernels would pay the penalty on each one. Coefficients
+are constrained to be ≥ 0: we are looking for triggers.
 
-**5 — Sélection par stabilité** (Meinshausen & Bühlmann). Pas de p-value : avec
-30 aliments × 7 décalages, des tests multiples et un décalage choisi a
-posteriori, toute p-value serait invalide. À la place, le modèle est réajusté
-sur 200 sous-échantillons *par blocs de jours contigus* (l'autocorrélation
-interdit de tirer les relevés indépendamment), et on retient la **fréquence de
-sélection**. La grille de pénalités est bornée au régime parcimonieux, sans quoi
-tout finit par être sélectionné et la fréquence ne discrimine plus rien.
+**5 — Stability selection** (Meinshausen & Bühlmann). No p-values: with 30 foods
+× 7 lags, multiple testing and a lag chosen after the fact, any p-value would be
+invalid. Instead the model is refitted on 200 subsamples drawn *as blocks of
+contiguous days* (autocorrelation rules out sampling entries independently), and
+what we keep is the **selection frequency**. The penalty grid is bounded to the
+sparse regime, without which everything eventually gets selected and the
+frequency no longer discriminates anything.
 
-**6 — Décalage et effet.** Réajustement non pénalisé (NNLS) sur les seuls
-aliments retenus. Le décalage se lit sur le **pic de la fonction de réponse
-reconstruite** — pas sur la masse des contributions, car les noyaux larges
-agrègent plus de repas et biaiseraient le délai vers le haut.
+**6 — Lag and effect size.** An unpenalised refit (NNLS) on the retained foods
+only. The lag is read off the **peak of the reconstructed response function** —
+not off the mass of the contributions, because wide kernels aggregate more meals
+and would bias the delay upwards.
 
-## Ce que l'algorithme signale explicitement
+## What the algorithm reports explicitly
 
-- **Aliments indissociables** : ceux presque toujours consommés ensemble
-  (Jaccard ≥ 0,85) sont fusionnés en un bloc. Aucune donnée d'observation ne
-  peut les départager ; le dire vaut mieux qu'en désigner un au hasard.
-- **Aliments indétectables** : ceux dont l'exposition est absorbée par les
-  contrôles (consommés tous les jours à heure fixe). Il n'existe aucune
-  variation à exploiter — seule une suppression temporaire peut les tester.
-- **Aliments écartés** : moins de 3 occurrences.
+- **Inseparable foods**: those almost always eaten together (Jaccard ≥ 0.85) are
+  merged into a single block. No observational data can tell them apart; saying
+  so is better than naming one of them at random.
+- **Undetectable foods**: those whose exposure is absorbed by the controls (eaten
+  every day at a fixed time). There is simply no variation to exploit — only a
+  temporary elimination can test them.
+- **Discarded foods**: fewer than 3 occurrences.
 
 ## Validation
 
-`python alim.py --valider` mesure les performances sur des journaux
-synthétiques dont les coupables sont **connus** : 3 coupables parmi ~32
-aliments, décalages 3 h / 6 h / 26 h, douleur bruitée et autocorrélée, aliments
-liés au moment du repas, une paire indissociable.
+`python gutcheck.py --valider` measures performance on synthetic diaries whose
+culprits are **known**: 3 culprits among some 32 foods, lags of 3 h / 6 h / 26 h,
+noisy and autocorrelated pain, foods tied to the time of the meal, and one
+inseparable pair.
 
-| jours | relevés | rappel | précision | erreur de décalage |
+| days | entries | recall | precision | lag error |
 |---:|---:|---:|---:|---:|
-| **douleur relevée aux repas seuls** | | | | |
-| 21 | 63 | 17 % | 67 % | 2,5 h |
-| 28 | 84 | 36 % | 82 % | 3,1 h |
-| 42 | 126 | 33 % | 78 % | 1,9 h |
-| 56 | 168 | 64 % | 69 % | 2,0 h |
-| 84 | 252 | 75 % | 72 % | 2,0 h |
-| **+ 6 relevés/jour hors repas** | | | | |
-| 21 | 189 | 44 % | 72 % | 2,0 h |
-| 28 | 252 | 64 % | 81 % | 1,6 h |
-| 42 | 378 | 86 % | 88 % | 0,9 h |
-| 56 | 504 | **100 %** | 83 % | 1,8 h |
-| 84 | 756 | **100 %** | 78 % | 0,9 h |
+| **pain recorded at meals only** | | | | |
+| 21 | 63 | 17 % | 67 % | 2.5 h |
+| 28 | 84 | 36 % | 82 % | 3.1 h |
+| 42 | 126 | 33 % | 78 % | 1.9 h |
+| 56 | 168 | 64 % | 69 % | 2.0 h |
+| 84 | 252 | 75 % | 72 % | 2.0 h |
+| **+ 6 entries/day away from meals** | | | | |
+| 21 | 189 | 44 % | 72 % | 2.0 h |
+| 28 | 252 | 64 % | 81 % | 1.6 h |
+| 42 | 378 | 86 % | 88 % | 0.9 h |
+| 56 | 504 | **100 %** | 83 % | 1.8 h |
+| 84 | 756 | **100 %** | 78 % | 0.9 h |
 
-*rappel* = part des vrais coupables retenus · *précision* = part des aliments
-retenus qui sont vraiment coupables · 12 journaux par ligne.
+*recall* = share of the true culprits retained · *precision* = share of the
+retained foods that really are culprits · 12 diaries per row.
 
-Deux enseignements :
+Two lessons:
 
-- **Relever la douleur hors repas vaut autant que doubler la durée du journal.**
-  Si la douleur n'est notée qu'aux repas, « 12 h après le petit-déjeuner » et
-  « le soir » sont littéralement la même colonne : rien ne peut les distinguer.
-- **En dessous de ~4 semaines, l'algorithme est prudent** : peu de faux positifs,
-  mais il rate la majorité des coupables. Ce n'est pas un défaut à corriger, c'est
-  la quantité d'information disponible.
+- **Recording pain away from meals is worth as much as doubling the length of the
+  diary.** If pain is only noted at mealtimes, "12 h after breakfast" and "in the
+  evening" are literally the same column: nothing can distinguish them.
+- **Below about 4 weeks, the algorithm is cautious**: few false positives, but it
+  misses most of the culprits. This is not a flaw to be fixed, it is the amount
+  of information available.
 
-## Limites
+## Limitations
 
-L'observation ne prouve pas la causalité. Un aliment retenu est un **candidat à
-tester**, pas un verdict : la confirmation passe par une suppression de deux
-semaines puis une réintroduction, un aliment à la fois. Le programme propose le
-candidat à tester en priorité.
+Observation does not prove causation. A retained food is a **candidate to test**,
+not a verdict: confirmation goes through a two-week elimination followed by a
+reintroduction, one food at a time. The program suggests which candidate to test
+first.
 
 ## Usage
 
 ```
-python alim.py journal.csv         analyse un journal CSV
-python alim.py journal.ods [nom]   analyse un classeur Calc ([nom] = feuille)
-python alim.py --exemple f.ods     écrit un journal synthétique de test
-python alim.py --valider           mesure les performances
-python alim.py --aide-format       format de fichier attendu
-python test_alim.py                tests de non-régression
+python gutcheck.py journal.csv         analyse a CSV diary
+python gutcheck.py journal.ods [name]  analyse a Calc workbook ([name] = sheet)
+python gutcheck.py --exemple f.ods     write a synthetic test diary
+python gutcheck.py --valider           measure performance
+python gutcheck.py --aide-format       expected file format
+python test_gutcheck.py                regression tests
 ```
 
-Deux formats sont acceptés, au choix : **CSV** ou **classeur LibreOffice Calc
-(`.ods`)** — ce dernier lu directement, sans dépendance supplémentaire. Les
-en-têtes tolèrent la mise en forme (`Douleur (0-10)` → `douleur`), les dates les
-formats usuels (`31/08/2026` comme `2026-08-31`), et les cellules date/heure
-typées par Calc sont relues à leur valeur canonique et non à leur affichage
-local.
+Two formats are accepted, whichever you prefer: **CSV** or a **LibreOffice Calc
+workbook (`.ods`)** — the latter read directly, with no extra dependency.
+Headers tolerate formatting (`Douleur (0-10)` → `douleur`), dates accept the
+usual formats (`31/08/2026` as well as `2026-08-31`), and date/time cells typed
+by Calc are read back at their canonical value rather than their local display.
 
-Colonnes : `date, heure, repas, aliments, douleur`
+Columns: `date, heure, repas, aliments, douleur`
+(date, time, meal, foods, pain)
 
 ```
 2026-08-31,08:00,petit_dejeuner,oeufs; pain; cafe,2
-2026-08-31,11:00,,,4              ← relevé de douleur seul
+2026-08-31,11:00,,,4              ← pain entry on its own
 2026-08-31,12:30,dejeuner,riz; poulet; legumes,4
 2026-08-31,19:00,diner,soupe; fromage,
 ```
 
-Deux conseils de saisie qui pèsent plus lourd que l'algorithme :
+Two data-entry tips that matter more than the algorithm does:
 
-1. **Relever la douleur toutes les 3-4 h**, y compris hors repas (voir plus haut).
-2. **Varier.** Un aliment consommé tous les jours sans exception est
-   indétectable quel que soit son effet : il n'y a aucun jour de comparaison.
+1. **Record pain every 3–4 h**, including away from meals (see above).
+2. **Vary your diet.** A food eaten every single day is undetectable whatever its
+   effect: there is no comparison day.
 
-## Fichiers
+## Files
 
 | | |
 |---|---|
-| `alim.py` | interface, lecture CSV, rapport |
-| `modele.py` | exposition, contrôles, group-lasso, sélection par stabilité |
-| `tableur.py` | lecture et écriture de classeurs `.ods` (bibliothèque standard) |
-| `simu.py` | générateur de journaux à coupables connus, évaluation |
-| `test_alim.py` | tests de non-régression (`python test_alim.py`) |
+| `gutcheck.py` | interface, CSV reading, report |
+| `modele.py` | exposure, controls, group lasso, stability selection |
+| `tableur.py` | reading and writing `.ods` workbooks (standard library) |
+| `simu.py` | generator of diaries with known culprits, evaluation |
+| `test_gutcheck.py` | regression tests (`python test_gutcheck.py`) |
 
-Dépendances : `numpy`, `scipy`.
+Dependencies: `numpy`, `scipy`.
