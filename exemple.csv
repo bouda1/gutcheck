@@ -1,0 +1,379 @@
+date,heure,repas,aliments,douleur
+2026-01-01,06:55,,,2
+2026-01-01,08:03,petit_dejeuner,beurre; cafe; pain,2
+2026-01-01,10:01,,,2
+2026-01-01,12:42,dejeuner,ail; huile; lentilles; oignon; pain; piment; poisson; pomme_terre; poulet; tomate,4
+2026-01-01,12:44,,,4
+2026-01-01,15:48,,,7
+2026-01-01,19:29,,,6
+2026-01-01,19:38,diner,legumes; lentilles; vin,5
+2026-01-01,22:07,,,3
+2026-01-02,07:11,,,2
+2026-01-02,07:45,petit_dejeuner,cafe; lait; pain; yaourt,4
+2026-01-02,10:13,,,4
+2026-01-02,12:05,dejeuner,ail; boeuf; legumes; oignon; pain; pomme_terre; riz; tomate,3
+2026-01-02,12:52,,,3
+2026-01-02,15:51,,,4
+2026-01-02,18:47,diner,ail; champignon; huile; legumes; oignon; pomme_terre; salade; soupe,3
+2026-01-02,18:53,,,5
+2026-01-02,21:39,,,4
+2026-01-03,07:05,,,3
+2026-01-03,08:39,petit_dejeuner,beurre; cafe; lait; pain; pomme; yaourt,3
+2026-01-03,09:58,,,3
+2026-01-03,12:54,dejeuner,lentilles; salade,4
+2026-01-03,13:14,,,3
+2026-01-03,16:10,,,5
+2026-01-03,19:13,,,4
+2026-01-03,19:56,diner,ail; courgette; lait; legumes; oignon; soupe; vin,3
+2026-01-03,21:43,,,1
+2026-01-04,06:42,,,1
+2026-01-04,08:15,petit_dejeuner,cafe; lait,0
+2026-01-04,10:28,,,3
+2026-01-04,12:37,dejeuner,beurre; cafe; huile; jus_orange; legumes; poisson; pomme,2
+2026-01-04,12:47,,,2
+2026-01-04,16:20,,,1
+2026-01-04,18:52,,,2
+2026-01-04,18:58,diner,courgette; legumes; pain; pomme_terre; poulet; salade; tomate,3
+2026-01-04,22:10,,,3
+2026-01-05,06:40,,,1
+2026-01-05,07:35,petit_dejeuner,beurre; cafe; cereales; confiture; oeufs; pain,2
+2026-01-05,09:33,,,3
+2026-01-05,13:03,dejeuner,ail; crevettes; legumes; oignon; salade; tomate,5
+2026-01-05,13:18,,,4
+2026-01-05,16:08,,,5
+2026-01-05,18:46,,,3
+2026-01-05,18:51,diner,legumes; oeufs; pain; yaourt,3
+2026-01-05,21:29,,,2
+2026-01-06,06:41,,,3
+2026-01-06,07:31,petit_dejeuner,beurre; cafe; cereales; oeufs; yaourt,3
+2026-01-06,09:37,,,5
+2026-01-06,11:48,dejeuner,courgette; huile; pain; poulet,5
+2026-01-06,13:19,,,4
+2026-01-06,16:11,,,4
+2026-01-06,18:43,,,4
+2026-01-06,18:47,diner,chocolat; pain; salade; vin,3
+2026-01-06,22:01,,,3
+2026-01-07,06:48,,,1
+2026-01-07,07:56,petit_dejeuner,banane; cafe; jus_orange; pain,1
+2026-01-07,09:55,,,2
+2026-01-07,12:14,dejeuner,ail; cafe; crevettes; legumes; lentilles; oignon; pain; salade; yaourt,5
+2026-01-07,13:35,,,4
+2026-01-07,16:09,,,4
+2026-01-07,18:52,,,5
+2026-01-07,19:02,diner,ail; huile; legumes; oignon; pomme_terre; riz; salade; yaourt,5
+2026-01-07,22:06,,,2
+2026-01-08,07:16,,,3
+2026-01-08,08:08,petit_dejeuner,banane; confiture; jus_orange; pain,3
+2026-01-08,10:19,,,2
+2026-01-08,12:21,dejeuner,boeuf; fromage; pomme; pomme_terre; poulet; salade,3
+2026-01-08,13:37,,,4
+2026-01-08,15:52,,,5
+2026-01-08,18:45,diner,beurre; boeuf; huile; legumes; piment; poisson; pomme_terre; tomate,5
+2026-01-08,19:04,,,6
+2026-01-08,21:48,,,6
+2026-01-09,06:57,,,1
+2026-01-09,07:41,petit_dejeuner,cafe; cereales; pain; yaourt,1
+2026-01-09,09:58,,,5
+2026-01-09,12:40,dejeuner,huile; lentilles; oeufs; poisson; poulet,6
+2026-01-09,12:46,,,4
+2026-01-09,16:03,,,4
+2026-01-09,18:37,diner,legumes; piment; riz,6
+2026-01-09,19:25,,,6
+2026-01-09,21:55,,,5
+2026-01-10,07:22,petit_dejeuner,beurre; cafe; pain; pomme,1
+2026-01-10,07:25,,,3
+2026-01-10,09:35,,,3
+2026-01-10,12:25,dejeuner,boeuf; chocolat; huile; oeufs; pain; piment; poisson,4
+2026-01-10,12:47,,,5
+2026-01-10,15:29,,,9
+2026-01-10,18:45,,,6
+2026-01-10,18:50,diner,courgette; lentilles; soupe; vin,6
+2026-01-10,22:01,,,3
+2026-01-11,07:09,,,1
+2026-01-11,07:38,petit_dejeuner,beurre; cafe; cereales; chocolat; confiture; lait; pain,0
+2026-01-11,10:13,,,2
+2026-01-11,11:57,dejeuner,boeuf; champignon; huile; legumes; poisson; poulet,2
+2026-01-11,12:43,,,3
+2026-01-11,16:01,,,3
+2026-01-11,19:00,,,4
+2026-01-11,19:04,diner,huile; poulet; salade; soupe; tomate,6
+2026-01-11,22:10,,,3
+2026-01-12,06:56,,,3
+2026-01-12,07:58,petit_dejeuner,beurre; cafe; jus_orange; lait; oeufs; pain; yaourt,2
+2026-01-12,09:39,,,1
+2026-01-12,12:35,dejeuner,boeuf; pain; piment; poisson; riz; vin; yaourt,4
+2026-01-12,12:59,,,5
+2026-01-12,15:52,,,7
+2026-01-12,18:40,diner,champignon; fromage; legumes; lentilles; tomate; vin,8
+2026-01-12,18:55,,,8
+2026-01-12,21:37,,,5
+2026-01-13,06:44,,,2
+2026-01-13,08:39,petit_dejeuner,beurre; cafe; lait; oeufs,3
+2026-01-13,10:23,,,2
+2026-01-13,11:58,dejeuner,ail; boeuf; chocolat; crevettes; huile; legumes; lentilles; oignon; pates; pomme; poulet,2
+2026-01-13,12:57,,,2
+2026-01-13,16:22,,,4
+2026-01-13,18:58,,,5
+2026-01-13,19:27,diner,ail; oignon; poisson; poulet; riz; tomate,4
+2026-01-13,21:49,,,5
+2026-01-14,06:24,,,1
+2026-01-14,07:51,petit_dejeuner,beurre; cafe; confiture,3
+2026-01-14,10:16,,,3
+2026-01-14,12:56,,,4
+2026-01-14,13:11,dejeuner,cafe; chocolat; fromage; huile; legumes; pain; soupe; tomate,2
+2026-01-14,15:26,,,4
+2026-01-14,18:30,diner,huile; pomme_terre; poulet; yaourt,3
+2026-01-14,18:41,,,2
+2026-01-14,22:14,,,0
+2026-01-15,07:19,,,0
+2026-01-15,07:57,petit_dejeuner,cafe; confiture,2
+2026-01-15,10:27,,,1
+2026-01-15,12:03,dejeuner,ail; banane; huile; legumes; oignon; pain; pates; pomme_terre; salade; yaourt,5
+2026-01-15,12:39,,,5
+2026-01-15,15:40,,,6
+2026-01-15,18:35,,,5
+2026-01-15,18:53,diner,fromage; pain; piment; soupe,5
+2026-01-15,21:13,,,5
+2026-01-16,07:23,,,2
+2026-01-16,08:40,petit_dejeuner,beurre; cafe; yaourt,1
+2026-01-16,10:22,,,3
+2026-01-16,11:57,dejeuner,boeuf; champignon; fromage; huile; legumes; pain; pomme; salade,3
+2026-01-16,13:23,,,4
+2026-01-16,16:41,,,6
+2026-01-16,18:51,,,6
+2026-01-16,18:55,diner,champignon; chocolat; fromage; huile; lait; legumes; vin,6
+2026-01-16,22:17,,,5
+2026-01-17,06:55,,,0
+2026-01-17,07:18,petit_dejeuner,cafe; lait; pain; yaourt,3
+2026-01-17,10:19,,,4
+2026-01-17,11:52,dejeuner,banane; fromage; huile; legumes; pain; pates; poulet; riz; tomate,5
+2026-01-17,12:33,,,7
+2026-01-17,16:13,,,7
+2026-01-17,18:40,diner,ail; crevettes; huile; legumes; oignon; pomme_terre; salade; vin; yaourt,7
+2026-01-17,18:59,,,5
+2026-01-17,22:24,,,4
+2026-01-18,07:31,,,0
+2026-01-18,08:17,petit_dejeuner,beurre; jus_orange; lait; pain; pomme,1
+2026-01-18,10:12,,,0
+2026-01-18,12:50,,,4
+2026-01-18,13:06,dejeuner,huile; legumes; pain; salade; tomate; yaourt,3
+2026-01-18,16:24,,,5
+2026-01-18,19:07,diner,ail; huile; legumes; oignon; poulet; salade; tomate,4
+2026-01-18,19:43,,,4
+2026-01-18,22:34,,,1
+2026-01-19,06:58,,,1
+2026-01-19,08:21,petit_dejeuner,cafe; cereales; confiture; jus_orange; oeufs; pain,3
+2026-01-19,09:54,,,2
+2026-01-19,11:53,dejeuner,ail; boeuf; huile; legumes; oignon; pain; poulet; riz; tomate,4
+2026-01-19,13:14,,,3
+2026-01-19,15:45,,,3
+2026-01-19,19:18,diner,chocolat; huile; legumes; lentilles; salade; yaourt,6
+2026-01-19,19:26,,,5
+2026-01-19,21:17,,,5
+2026-01-20,06:59,,,3
+2026-01-20,08:33,petit_dejeuner,banane; beurre; cafe; confiture; lait; pain; yaourt,1
+2026-01-20,09:58,,,1
+2026-01-20,12:22,dejeuner,courgette; fromage; huile; lentilles; oeufs; pain; poisson; soupe,3
+2026-01-20,13:11,,,4
+2026-01-20,15:33,,,5
+2026-01-20,18:52,,,4
+2026-01-20,18:59,diner,legumes; poisson; pomme; pomme_terre; poulet; riz; soupe; yaourt,4
+2026-01-20,21:51,,,2
+2026-01-21,07:20,,,2
+2026-01-21,07:55,petit_dejeuner,cafe; lait; oeufs; pain; yaourt,0
+2026-01-21,10:00,,,2
+2026-01-21,12:23,dejeuner,ail; champignon; fromage; huile; legumes; lentilles; oignon; pates; poulet; salade,4
+2026-01-21,12:56,,,5
+2026-01-21,16:08,,,6
+2026-01-21,18:24,diner,courgette; crevettes; legumes; pomme; soupe,5
+2026-01-21,18:36,,,5
+2026-01-21,21:48,,,2
+2026-01-22,07:00,,,0
+2026-01-22,08:07,petit_dejeuner,cafe; cereales; confiture; fromage; jus_orange; oeufs; pain; yaourt,0
+2026-01-22,10:03,,,2
+2026-01-22,12:18,dejeuner,ail; champignon; legumes; oignon; pain; pates; poisson,3
+2026-01-22,13:17,,,5
+2026-01-22,16:02,,,4
+2026-01-22,18:29,,,3
+2026-01-22,18:47,diner,boeuf; huile; legumes; piment; poulet,6
+2026-01-22,22:26,,,6
+2026-01-23,06:51,,,2
+2026-01-23,08:04,petit_dejeuner,confiture; jus_orange; lait; pomme,4
+2026-01-23,09:50,,,5
+2026-01-23,12:26,dejeuner,ail; cafe; huile; legumes; oignon; pain; riz; yaourt,4
+2026-01-23,12:54,,,6
+2026-01-23,16:09,,,5
+2026-01-23,18:38,diner,ail; legumes; oignon; piment; salade; soupe; vin; yaourt,3
+2026-01-23,19:16,,,4
+2026-01-23,22:12,,,7
+2026-01-24,06:53,,,2
+2026-01-24,08:53,petit_dejeuner,beurre; cafe; pain,4
+2026-01-24,09:46,,,4
+2026-01-24,13:17,dejeuner,ail; beurre; boeuf; huile; legumes; lentilles; oignon; pain; tomate; vin,5
+2026-01-24,13:35,,,3
+2026-01-24,16:27,,,4
+2026-01-24,18:38,diner,beurre; huile; legumes; poisson; soupe; tomate,6
+2026-01-24,19:21,,,7
+2026-01-24,22:18,,,5
+2026-01-25,06:29,,,1
+2026-01-25,07:18,petit_dejeuner,cafe; cereales; confiture,1
+2026-01-25,10:25,,,2
+2026-01-25,12:01,dejeuner,pomme_terre; yaourt,3
+2026-01-25,13:18,,,2
+2026-01-25,16:15,,,2
+2026-01-25,18:34,diner,chocolat; huile; salade,3
+2026-01-25,19:37,,,4
+2026-01-25,22:13,,,3
+2026-01-26,06:58,,,2
+2026-01-26,07:57,petit_dejeuner,beurre; cafe; confiture; jus_orange; pain; pomme,4
+2026-01-26,09:38,,,2
+2026-01-26,12:20,dejeuner,ail; champignon; huile; legumes; lentilles; oignon; pain; pates; pomme_terre; poulet; salade,3
+2026-01-26,12:46,,,3
+2026-01-26,15:32,,,3
+2026-01-26,18:07,diner,champignon; pain; poisson; pomme; pomme_terre; tomate; yaourt,2
+2026-01-26,18:55,,,4
+2026-01-26,21:32,,,3
+2026-01-27,06:59,,,2
+2026-01-27,08:26,petit_dejeuner,cafe; confiture; lait; pain,4
+2026-01-27,10:19,,,2
+2026-01-27,11:57,dejeuner,boeuf; champignon; fromage; legumes,3
+2026-01-27,13:15,,,2
+2026-01-27,15:50,,,5
+2026-01-27,19:07,,,4
+2026-01-27,19:07,diner,ail; legumes; oignon; soupe; vin,4
+2026-01-27,22:07,,,4
+2026-01-28,07:21,,,3
+2026-01-28,07:47,petit_dejeuner,banane; cafe; cereales; lait; oeufs; pain,3
+2026-01-28,10:36,,,5
+2026-01-28,12:33,dejeuner,fromage; legumes; lentilles; tomate,6
+2026-01-28,12:56,,,7
+2026-01-28,15:20,,,7
+2026-01-28,18:49,diner,courgette; fromage; huile; legumes; pates; soupe; yaourt,5
+2026-01-28,18:53,,,3
+2026-01-28,21:20,,,4
+2026-01-29,07:11,,,3
+2026-01-29,07:51,petit_dejeuner,beurre; cafe; confiture; lait; pain,3
+2026-01-29,09:41,,,3
+2026-01-29,12:23,dejeuner,pates; pomme; tomate,5
+2026-01-29,13:06,,,4
+2026-01-29,16:09,,,5
+2026-01-29,19:01,diner,salade,7
+2026-01-29,19:25,,,6
+2026-01-29,22:07,,,4
+2026-01-30,06:46,,,2
+2026-01-30,08:36,petit_dejeuner,beurre; lait; pain,2
+2026-01-30,10:25,,,2
+2026-01-30,12:46,dejeuner,ail; chocolat; huile; legumes; oignon; tomate,3
+2026-01-30,13:22,,,3
+2026-01-30,15:51,,,4
+2026-01-30,18:31,diner,ail; fromage; lait; oignon; pates; pomme; vin; yaourt,5
+2026-01-30,19:16,,,4
+2026-01-30,22:03,,,6
+2026-01-31,07:14,,,3
+2026-01-31,07:47,petit_dejeuner,beurre; cafe; cereales; jus_orange; lait; oeufs; pain; yaourt,2
+2026-01-31,09:57,,,2
+2026-01-31,12:26,dejeuner,ail; huile; legumes; oignon; pomme; salade,3
+2026-01-31,12:45,,,2
+2026-01-31,15:37,,,4
+2026-01-31,18:45,diner,ail; chocolat; huile; oignon; riz; soupe,7
+2026-01-31,18:46,,,6
+2026-01-31,21:56,,,5
+2026-02-01,07:05,,,4
+2026-02-01,07:46,petit_dejeuner,beurre; cafe; pain; pomme,4
+2026-02-01,10:26,,,4
+2026-02-01,12:47,dejeuner,ail; fromage; legumes; oignon; pain; pomme_terre; poulet; tomate,5
+2026-02-01,13:25,,,4
+2026-02-01,16:06,,,6
+2026-02-01,19:03,,,5
+2026-02-01,19:20,diner,boeuf; fromage; huile; legumes; poulet,2
+2026-02-01,22:04,,,3
+2026-02-02,07:28,,,2
+2026-02-02,08:33,petit_dejeuner,beurre; cafe; pain,1
+2026-02-02,09:49,,,3
+2026-02-02,12:22,dejeuner,ail; oignon; pain; pates,5
+2026-02-02,12:55,,,5
+2026-02-02,15:40,,,4
+2026-02-02,18:42,,,5
+2026-02-02,19:17,diner,ail; boeuf; huile; oignon; pain; pates; soupe; vin,5
+2026-02-02,22:12,,,6
+2026-02-03,07:16,,,2
+2026-02-03,07:55,petit_dejeuner,banane; beurre; cafe; pain,2
+2026-02-03,10:23,,,2
+2026-02-03,12:42,dejeuner,legumes; pain; pates; poisson; pomme_terre; poulet; salade; tomate,3
+2026-02-03,13:19,,,4
+2026-02-03,16:18,,,2
+2026-02-03,18:33,diner,banane; boeuf; courgette; huile; pomme_terre; tomate; yaourt,2
+2026-02-03,19:02,,,3
+2026-02-03,21:45,,,2
+2026-02-04,06:58,,,2
+2026-02-04,08:10,petit_dejeuner,banane; confiture; lait,4
+2026-02-04,09:47,,,3
+2026-02-04,12:41,dejeuner,champignon; courgette; huile; legumes; pain; pomme_terre; riz; salade,3
+2026-02-04,13:07,,,3
+2026-02-04,16:12,,,1
+2026-02-04,18:34,,,4
+2026-02-04,18:51,diner,champignon; fromage; riz; salade; soupe; tomate,4
+2026-02-04,22:06,,,3
+2026-02-05,07:13,petit_dejeuner,banane; cafe; cereales; lait; pain,2
+2026-02-05,07:18,,,3
+2026-02-05,09:36,,,3
+2026-02-05,12:41,dejeuner,cafe; crevettes; huile; legumes; pain; yaourt,4
+2026-02-05,12:50,,,3
+2026-02-05,16:40,,,6
+2026-02-05,18:42,diner,soupe,4
+2026-02-05,19:03,,,6
+2026-02-05,22:26,,,5
+2026-02-06,06:53,,,3
+2026-02-06,07:31,petit_dejeuner,beurre; cafe; cereales,2
+2026-02-06,10:31,,,2
+2026-02-06,12:10,dejeuner,ail; fromage; oignon; pain; pomme; salade; vin,2
+2026-02-06,12:35,,,3
+2026-02-06,15:46,,,5
+2026-02-06,18:25,diner,chocolat; courgette; pain; pates; poulet; salade,4
+2026-02-06,19:21,,,4
+2026-02-06,22:07,,,1
+2026-02-07,06:42,,,0
+2026-02-07,07:14,petit_dejeuner,beurre; cafe; cereales; confiture; jus_orange; lait; oeufs; pain,1
+2026-02-07,09:45,,,5
+2026-02-07,12:37,,,8
+2026-02-07,12:50,dejeuner,huile; legumes; pain; pomme; pomme_terre; riz,8
+2026-02-07,16:17,,,7
+2026-02-07,19:18,diner,ail; banane; courgette; oignon; pain; pates; salade; tomate,4
+2026-02-07,19:22,,,2
+2026-02-07,22:04,,,2
+2026-02-08,07:04,,,1
+2026-02-08,08:25,petit_dejeuner,cafe; confiture; oeufs,1
+2026-02-08,09:37,,,3
+2026-02-08,13:05,,,3
+2026-02-08,13:09,dejeuner,boeuf; legumes; pates; tomate; yaourt,3
+2026-02-08,15:51,,,2
+2026-02-08,18:37,,,4
+2026-02-08,19:01,diner,champignon; huile; pates; pomme; pomme_terre; tomate; yaourt,5
+2026-02-08,21:59,,,3
+2026-02-09,07:10,,,2
+2026-02-09,08:20,petit_dejeuner,beurre; cafe; cereales; chocolat; pain,2
+2026-02-09,10:00,,,3
+2026-02-09,11:37,dejeuner,boeuf; crevettes; huile; legumes; pain; pomme; pomme_terre; poulet; tomate,4
+2026-02-09,12:40,,,3
+2026-02-09,15:38,,,3
+2026-02-09,18:29,diner,champignon; huile; riz; salade,2
+2026-02-09,19:00,,,2
+2026-02-09,21:36,,,3
+2026-02-10,07:18,,,0
+2026-02-10,07:29,petit_dejeuner,beurre; cafe,2
+2026-02-10,09:54,,,3
+2026-02-10,11:55,dejeuner,boeuf; legumes; oeufs; pates,3
+2026-02-10,12:51,,,2
+2026-02-10,16:33,,,2
+2026-02-10,18:35,,,2
+2026-02-10,19:09,diner,banane; fromage; oeufs; piment; yaourt,5
+2026-02-10,22:25,,,5
+2026-02-11,06:59,,,2
+2026-02-11,07:20,petit_dejeuner,cafe; confiture; lait; oeufs; pain,2
+2026-02-11,10:21,,,2
+2026-02-11,12:12,dejeuner,boeuf; legumes; poisson; salade,3
+2026-02-11,12:55,,,4
+2026-02-11,15:40,,,4
+2026-02-11,19:07,diner,ail; chocolat; courgette; legumes; oeufs; oignon; pain; salade,5
+2026-02-11,19:19,,,4
+2026-02-11,21:52,,,4
