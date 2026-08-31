@@ -103,7 +103,7 @@ verifier(any("pas-une-date" in a for a in avert), "date illisible signalée")
 verifier(["cafe", "pain"] == rep[0][1], f"noms normalisés (obtenu {rep[0][1]})")
 
 print("\nclasseur LibreOffice Calc (.ods)")
-from tableur import ecrire_ods, lire_feuille, lire_ods, normaliser_entete
+from spreadsheet import ecrire_ods, lire_feuille, read_ods, normaliser_entete
 verifier(normaliser_entete("  Douleur (0-10) ") == "douleur",
          "en-tête décoré normalisé")
 verifier(normaliser_entete("Aliments") == "aliments", "en-tête casse ignorée")
@@ -116,7 +116,7 @@ ecrire_ods(chemin_ods, [
     ["2026-03-01", "12:30", "dejeuner", "riz; poulet", ""],
     ["2026-03-02", "19:00", "diner", "soupe", 5],
 ])
-d = lire_ods(chemin_ods)
+d = read_ods(chemin_ods)
 verifier(len(d) == 4, f"4 lignes de données lues (obtenu {len(d)})")
 verifier(d[0]["date"] == "2026-03-01",
          "cellule DATE typée relue en ISO (pas le texte affiché)")

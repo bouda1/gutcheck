@@ -233,7 +233,7 @@ def ecrire_journal(chemin, n_jours=42, graine=0,
               for ts, moment, alims, d in lignes]
 
     if chemin.lower().endswith(".ods"):
-        from tableur import ecrire_ods
+        from spreadsheet import ecrire_ods
         ecrire_ods(chemin, table, feuille="journal")
     else:
         import csv as _csv

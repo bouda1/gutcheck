@@ -1,54 +1,62 @@
 #!/usr/bin/env python3
 """
-Détection d'aliments déclencheurs de douleur, avec décalage temporel inconnu
-et plusieurs coupables possibles.
+Detection of pain-triggering foods, with unknown time lag
+and several possible culprits.
 
-  python alim.py journal.csv        analyse un journal (CSV)
-  python alim.py journal.ods [nom]  analyse un classeur LibreOffice Calc
-                                    ([nom] = feuille, la 1re par défaut)
-  python alim.py --valider          mesure les performances sur données
-                                    synthétiques à coupables connus
-  python alim.py --exemple f.csv    écrit un journal synthétique de test
-  python alim.py --exemple f.ods    idem, au format LibreOffice Calc
-  python alim.py --aide-format      format de fichier attendu
+  python gutcheck.py journal.csv        analyze a journal (CSV)
+  python gutcheck.py journal.ods [name] analyze a LibreOffice Calc workbook
+                                    ([name] = sheet, defaults to the 1st)
+  python gutcheck.py --validate         measure performance on synthetic
+                                    data with known culprits
+  python gutcheck.py --example f.csv    write a synthetic test journal
+  python gutcheck.py --example f.ods    same, in LibreOffice Calc format
+  python gutcheck.py --format-help      expected file format
 
-Format CSV : date,heure,repas,aliments,douleur
-  - `aliments` : séparés par « ; » ; laisser vide pour une ligne qui ne relève
-    que la douleur (fortement recommandé : relever la douleur AUSSI en dehors
-    des repas est ce qui permet de séparer le décalage de l'heure du repas) ;
-  - `douleur`  : 0-10 ; laisser vide pour un repas sans relevé de douleur ;
-  - `heure`    : HH:MM, 12:00 par défaut.
+CSV format: date,time,meal,foods,pain
+  - `foods`: separated by ";"; leave blank for a row that only records
+    pain (strongly recommended: recording pain ALSO between meals is
+    what makes it possible to separate the lag from the meal time);
+  - `pain`:  0-10; leave blank for a meal with no pain reading;
+  - `time`:  HH:MM, defaults to 12:00.
 """
 
 import csv
 import re
 import sys
+import gettext
+import locale
 from datetime import datetime
 
 import numpy as np
 
 from modele import analyser, normaliser, SEUIL_STABILITE, MIN_OCCURRENCES
-from tableur import lire_ods, normaliser_entete
+from spreadsheet import read_ods, normaliser_entete
 
-COLONNES_ATTENDUES = ("date", "heure", "repas", "aliments", "douleur")
+lang_code = locale.getlocale()[0] or 'fr'
+lang_code = lang_code.split('_')[0] # fr_FR => fr
+
+lang = gettext.translation("gutcheck", localedir="locales", languages=[lang_code], fallback=True)
+_ = lang.gettext
+
+COLONNES_ATTENDUES = (_("date"), _("heure"), _("repas"), _("aliments"), _("douleur"))
 
 
-def lire_lignes(fichier, feuille=None):
+def read_lines(file, feuille=None):
     """
-    Lit un journal, quel que soit son format, et renvoie des dictionnaires
-    colonne → texte. Les en-têtes sont normalisés (« Douleur (0-10) » →
-    « douleur ») pour tolérer la mise en forme d'un vrai classeur.
+    Read a diary, whatever its format, and return dictionaries
+    column → text. Headers are normalized ("Douleur (0-10)" →
+    "douleur") to tolerate the formatting of a real spreadsheet.
     """
-    if fichier.lower().endswith((".ods", ".fods")):
-        return lire_ods(fichier, feuille)
-    with open(fichier, encoding="utf-8-sig", newline="") as f:
-        lecteur = csv.reader(f)
+    if file.lower().endswith((".ods", ".fods")):
+        return read_ods(file, feuille)
+    with open(file, encoding="utf-8-sig", newline="") as f:
+        reader = csv.reader(f)
         try:
-            entetes = [normaliser_entete(x) for x in next(lecteur)]
+            entetes = [normaliser_entete(x) for x in next(reader)]
         except StopIteration:
             return []
         return [dict(zip(entetes, ligne + [""] * (len(entetes) - len(ligne))))
-                for ligne in lecteur if any(x.strip() for x in ligne)]
+                for ligne in reader if any(x.strip() for x in ligne)]
 
 
 FORMATS_DATE = ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%Y/%m/%d", "%d.%m.%Y")
@@ -74,16 +82,16 @@ def analyser_heure(texte):
     return (h, mn) if 0 <= h < 24 and 0 <= mn < 60 else None
 
 
-def charger_journal(fichier, feuille=None):
+def charger_journal(file, feuille=None):
     """→ (observations, repas, avertissements) en heures depuis la 1re ligne."""
     lignes, avert, sans_heure = [], [], 0
-    brutes = lire_lignes(fichier, feuille)
+    raw = read_lines(file, feuille)
     manquantes = [c for c in ("date", "aliments", "douleur")
-                  if brutes and c not in brutes[0]]
+                  if raw and c not in raw[0]]
     if manquantes:
         avert.append(f"colonne(s) absente(s) : {', '.join(manquantes)} — "
                      f"attendu : {', '.join(COLONNES_ATTENDUES)}")
-    for num, ligne in enumerate(brutes, start=2):
+    for num, ligne in enumerate(raw, start=2):
         texte_date = (ligne.get("date") or "").strip()
         if not texte_date:
             continue
@@ -161,7 +169,7 @@ def _distance(a, b):
 
 def afficher(res, avert):
     if avert:
-        print("\n  Avertissements :")
+        print(_("\n  Avertissements :"))
         for a in avert:
             print(f"    · {a}")
 
@@ -287,7 +295,7 @@ def main():
         print("  Coupables réellement injectés (à retrouver) :")
         for nom, (lag, amp) in verite.items():
             print(f"    · {nom:<12} décalage {lag:>4.0f} h, amplitude {amp:.1f}")
-        print(f"\n  Essayez :  python alim.py {chemin}\n")
+        print(f"\n  Essayez :  python gutcheck.py {chemin}\n")
         return
 
     if args[0] == "--valider":

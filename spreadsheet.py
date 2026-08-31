@@ -122,8 +122,17 @@ def normaliser_entete(nom):
     return nom.split("(")[0].strip().replace(" ", "_")
 
 
-def lire_ods(chemin, feuille=None):
-    """→ liste de dict, à la manière de csv.DictReader (1re ligne = en-têtes)."""
+def read_ods(chemin, feuille=None):
+    """
+    Read an ODS file and return a list of dictionaries, similar to csv.DictReader (first line = headers).
+
+    Args:
+        chemin (str): Path to the ODS file.
+        feuille (str, optional): Name of the sheet to read. Defaults to None (first sheet).
+
+    Returns:
+        list: A list of dictionaries representing the rows in the sheet, with normalized headers as keys.
+    """
     lignes = lire_feuille(chemin, feuille)
     if not lignes:
         return []
