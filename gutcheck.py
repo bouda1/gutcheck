@@ -28,7 +28,7 @@ import numpy as np
 from babel.dates import parse_date, parse_time
 
 from i18n import _
-from modele import MIN_OCCURRENCES, SEUIL_STABILITE, analyze, normalize
+from model import MIN_OCCURRENCES, SEUIL_STABILITE, analyze, normalize
 from spreadsheet import normalize_header, read_ods
 
 COLUMNS = (_("date"), _("time"), _("meal"), _("foods"), _("pain"))

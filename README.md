@@ -173,7 +173,7 @@ Two data-entry tips that matter more than the algorithm does:
 | | |
 |---|---|
 | `gutcheck.py` | interface, CSV reading, report |
-| `modele.py` | exposure, controls, group lasso, stability selection |
+| `model.py` | exposure, controls, group lasso, stability selection |
 | `spreadsheet.py` | reading and writing `.ods` workbooks (standard library) |
 | `simu.py` | generator of diaries with known culprits, evaluation |
 | `test_gutcheck.py` | regression tests (`python test_gutcheck.py`) |

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Générateur de journaux synthétiques à coupables CONNUS, et évaluation de
 l'algorithme dessus. C'est la seule manière de savoir s'il fonctionne : sur
@@ -16,8 +15,8 @@ Le générateur reproduit exprès les pièges du problème réel :
 import numpy as np
 from babel.dates import format_date
 
-from modele import analyze, normalize
-from i18n import _, n_
+from i18n import _
+from model import analyze, normalize
 
 MOMENTS = [(8.0, _("breakfast")), (12.5, _("lunch")), (19.0, _("dinner"))]
 
@@ -57,7 +56,7 @@ def reponse(delais, centre, largeur=7.0):
 def generer(n_jours=28, coupables=None, graine=0, bruit=1.0,
             amplitude_circadienne=1.2, autocorr=0.45, base=2.5,
             heures_releve=None, douleur_aux_repas=True):
-    """→ (observations, repas, verite) au format attendu par modele.analyze."""
+    """→ (observations, repas, verite) au format attendu par model.analyze."""
     rng = np.random.default_rng(graine)
     if coupables is None:
         coupables = [("fromage", 26.0, 2.2), ("vin", 6.0, 2.0),
@@ -67,7 +66,7 @@ def generer(n_jours=28, coupables=None, graine=0, bruit=1.0,
     # -- repas ---------------------------------------------------------
     repas = []
     for j in range(n_jours):
-        for m, (h, _) in enumerate(MOMENTS):
+        for m, (h, _nom) in enumerate(MOMENTS):
             t = j * 24 + h + rng.normal(0, 0.4)
             choisis = [nom for nom, *p in CATALOGUE if rng.random() < p[m]]
             for a, b in INSEPARABLES:
@@ -140,7 +139,8 @@ def evaluer_parallele(n_seeds=12, n_jours=28, heures_releve=None,
                       n_replicats=120, seuil=None, procs=None):
     """Même mesure que `evaluer`, répartie sur les coeurs disponibles."""
     from concurrent.futures import ProcessPoolExecutor
-    from modele import SEUIL_STABILITE
+
+    from model import SEUIL_STABILITE
     seuil = SEUIL_STABILITE if seuil is None else seuil
     taches = [(n_jours, heures_releve, seuil, n_replicats, s)
               for s in range(n_seeds)]
@@ -164,7 +164,7 @@ def evaluer_parallele(n_seeds=12, n_jours=28, heures_releve=None,
 def evaluer(n_seeds=12, n_jours=28, n_replicats=120, seuil=None,
             heures_releve=None, **kw):
     """Précision / rappel / erreur de décalage sur n_seeds journaux."""
-    from modele import SEUIL_STABILITE
+    from model import SEUIL_STABILITE
     seuil = SEUIL_STABILITE if seuil is None else seuil
     rappels, precisions, err_lag, faux, n_obs = [], [], [], {}, 0
     for s in range(n_seeds):
@@ -213,11 +213,11 @@ def write_diary(chemin, n_jours=42, graine=0,
                    heures_releve=(7, 10, 13, 16, 19, 22)):
     """Écrit un journal synthétique. Le format suit l'extension : .ods pour un
     classeur LibreOffice Calc, CSV sinon."""
-    from datetime import datetime, timedelta
+    from datetime import datetime, timedelta, timezone
 
     obs, repas, verite = generer(n_jours=n_jours, graine=graine,
                                  heures_releve=list(heures_releve))
-    depart = datetime(2026, 1, 1)
+    depart = datetime(2026, 1, 1, tzinfo=timezone.utc)
     par_instant = {round(t, 4): a for t, a in repas}
     noms = {8.0: _("breakfast"), 12.5: _("lunch"), 19.0: _("dinner")}
 

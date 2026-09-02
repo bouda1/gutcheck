@@ -11,7 +11,7 @@ from i18n import _
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from gutcheck import load_diary
-from modele import (
+from model import (
     LAG_CENTERS,
     MIN_DELAY,
     MAX_SPAN,

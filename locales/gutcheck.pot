@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-02 12:10+0200\n"
+"POT-Creation-Date: 2026-09-02 23:33+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -157,46 +157,46 @@ msgstr ""
 msgid "  You need at least about ten days. See --aide-format.\n"
 msgstr ""
 
-#: simu.py:22 simu.py:222
+#: simu.py:21 simu.py:222
 msgid "breakfast"
 msgstr ""
 
-#: simu.py:22 simu.py:222
+#: simu.py:21 simu.py:222
 msgid "lunch"
 msgstr ""
 
-#: simu.py:22 simu.py:222
+#: simu.py:21 simu.py:222
 msgid "dinner"
 msgstr ""
 
-#: test_gutcheck.py:100
+#: test_gutcheck.py:105
 msgid "Date"
 msgstr ""
 
-#: test_gutcheck.py:101 test_gutcheck.py:132
+#: test_gutcheck.py:106 test_gutcheck.py:137
 msgid "Time"
 msgstr ""
 
-#: test_gutcheck.py:102 test_gutcheck.py:132
+#: test_gutcheck.py:107 test_gutcheck.py:137
 msgid "Meal"
 msgstr ""
 
-#: test_gutcheck.py:103 test_gutcheck.py:132
+#: test_gutcheck.py:108 test_gutcheck.py:137
 msgid "Foods"
 msgstr ""
 
-#: test_gutcheck.py:104 test_gutcheck.py:132
+#: test_gutcheck.py:109 test_gutcheck.py:137
 msgid "Pain (0-10)"
 msgstr ""
 
-#: modele.py:404
+#: model.py:457
 msgid "no food reaches the minimum number of occurrences"
 msgstr ""
 
-#: modele.py:442
+#: model.py:496
 msgid "no food varies enough to be tested (diet too regular)"
 msgstr ""
 
-#: modele.py:505
+#: model.py:559
 msgid "log too short for resampling"
 msgstr ""

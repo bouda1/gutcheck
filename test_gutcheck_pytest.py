@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import numpy as np
 
-from modele import (
+from model import (
         MAX_SPAN,
         MIN_DELAY,
         LAG_CENTERS,
