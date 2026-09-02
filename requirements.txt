@@ -1,0 +1,7 @@
+# Dépendances d'exécution de gutcheck.
+# Installation : uv pip install -r requirements.txt
+# Mise à jour  : uv pip install --upgrade -r requirements.txt
+
+babel>=2.18.0   # format_date / parse_date / parse_time (spreadsheet.py, simu.py)
+numpy>=2.5.2    # simulation et algèbre (model.py, simu.py)
+scipy>=1.18.1   # scipy.optimize.nnls (model.py)
