@@ -1,38 +1,36 @@
-#!/usr/bin/env python3
 """
-Modèle à décalages distribués + sélection par stabilité.
+Distributed-lag model + stability selection.
 
-Principe
---------
-La douleur observée à l'instant t est la somme des contributions de TOUS les
-repas passés. Chaque aliment agit avec un profil de décalage qui lui est propre,
-décrit par une base de noyaux lisses (raised-cosine) couvrant 0-84 h.
+Principle
+---------
+The pain observed at time t is the sum of the contributions of ALL past
+meals. Each food acts with its own lag profile, described by a smooth
+kernel basis (raised-cosine) covering 0-84 h.
 
-Tous les aliments sont estimés SIMULTANÉMENT (donc plusieurs coupables
-possibles, et chacun est jugé « à aliments concurrents constants »), sous deux
-contraintes :
-  - positivité : on cherche des déclencheurs, pas des protecteurs ;
-  - parcimonie (lasso) : peu d'aliments sont réellement en cause.
+All foods are estimated SIMULTANEOUSLY (so several culprits are possible,
+and each is assessed "holding competing foods constant"), subject to two
+constraints:
+  - positivity: we're looking for triggers, not protectors;
+  - sparsity (lasso): few foods are actually responsible.
 
-La question « lesquels ? » n'est pas tranchée par une p-value (invalide ici :
-tests multiples, décalage choisi a posteriori, douleur autocorrélée) mais par la
-FRÉQUENCE DE SÉLECTION sous ré-échantillonnage par blocs de jours
+The question "which ones?" is not settled by a p-value (invalid here:
+multiple testing, lag chosen post hoc, autocorrelated pain) but by the
+SELECTION FREQUENCY under block resampling by days
 (stability selection, Meinshausen & Bühlmann 2010).
 """
 
 import unicodedata
 from collections import defaultdict
-from i18n import _
 
 import numpy as np
 
-# ─── Base de décalages : centres et demi-largeurs, en heures ──────
-CENTRES_LAG = np.array([2.0, 5.0, 9.0, 15.0, 24.0, 40.0, 60.0])
-LARGEURS_LAG = np.array([3.0, 4.0, 5.0, 8.0, 12.0, 18.0, 24.0])
-DELAI_MIN = 0.25          # un repas n'agit jamais sur une douleur simultanée
-PORTEE_MAX = float(CENTRES_LAG[-1] + LARGEURS_LAG[-1])
+# Lag basis: raised-cosine kernels, 0-84 h. Centers and half-widths in hours.
+LAG_CENTERS = np.array([2.0, 5.0, 9.0, 15.0, 24.0, 40.0, 60.0])
+LAG_WIDTHS = np.array([3.0, 4.0, 5.0, 8.0, 12.0, 18.0, 24.0])
+MIN_DELAY = 0.25          # A meal never acts on a simultaneous pain
+MAX_SPAN = float(LAG_CENTERS[-1] + LAG_WIDTHS[-1])
 
-# ─── Sélection par stabilité ──────────────────────────────────────
+# Selection by stability (Meinshausen & Bühlmann 2010)
 TAILLE_BLOC_JOURS = 3     # blocs contigus : préserve l'autocorrélation
 FRACTION_SOUS_ECH = 0.5
 N_REPLICATS = 200
@@ -43,64 +41,112 @@ MIN_OCCURRENCES = 3       # nb minimal de repas contenant l'aliment
 SEUIL_JACCARD = 0.85      # au-delà : aliments indissociables, fusionnés
 
 
-# ══════════════════════════════════════════════════════════════════
-#  Normalisation des noms d'aliments
-# ══════════════════════════════════════════════════════════════════
-
-def normalize(nom):
+def normalize(name):
     """ Normalize a food name to a canonical form: lowercase, no accents, unified separators.
 
+    Examples:
+        >>> normalize("Pain au chocolat")
+        'pain_au_chocolat'
+        >>> normalize("Crème brûlée")
+        'creme_brulee'
+        >>> normalize("Salade de fruits - frais")
+        'salade_de_fruits_frais'
+
     Args:
-        nom (str): The food name to normalize.
+        name (str): The food name to normalize.
 
     Returns:
         str: The normalized food name.
     """
-    nom = unicodedata.normalize("NFKD", nom.strip().lower())
-    nom = "".join(c for c in nom if not unicodedata.combining(c))
-    return "_".join(nom.replace("-", " ").replace("_", " ").split())
+    name = unicodedata.normalize("NFKD", name.strip().lower())
+    name = "".join(c for c in name if not unicodedata.combining(c))
+    return "_".join(name.replace("-", " ").replace("_", " ").split())
 
 
 # ══════════════════════════════════════════════════════════════════
 #  Matrice d'exposition
 # ══════════════════════════════════════════════════════════════════
 
-def poids_noyaux(delais):
-    """(n,) délais en heures → (n, K) poids des noyaux raised-cosine."""
-    d = np.asarray(delais, dtype=float)[:, None]
-    u = (d - CENTRES_LAG[None, :]) / LARGEURS_LAG[None, :]
+def kernels_weights(delays):
+    """
+    This function creates a matrix.
+
+    Each column corresponds to a raised-cosine kernel centered at a specific lag,
+    in other words, each column represents a function almost equal to 0 everywhere
+    except around its center lag, where it takes values between 0 and 1, with
+    smooth transitions, exactly equal to 1 at the center lag and equal to 0 at
+    the edges of the kernel width. It looks like a dome as a cosine function
+    restricted to [-pi, pi] and shifted to be centered at the lag center.
+
+    Each row corresponds to a specific delay (in hours) between a meal and an
+    observation of pain. The value in each cell is the weight of the corresponding
+    kernel for that delay, which is 0 if the delay is outside the kernel width,
+    and smoothly varies between 0 and 1 within the kernel width.
+
+    The resulting matrix has shape (n, K), where n is the number of delays and K
+    is the number of kernels.
+
+    Args:
+        delays (array-like): An array of shape (n,) containing the delays in
+        hours between meals and pain observations.
+
+    Returns:
+        np.ndarray: A 2D array of shape (n, K) containing the weights of the
+        raised-cosine kernels for each delay.
+    """
+    # Conversion of delays to a float array and transposition in column.
+    d = np.asarray(delays, dtype=float)[:, None]
+
+    # Computation of the dome functions for each delay. These functions are named 'weights'.
+    u = (d - LAG_CENTERS[None, :]) / LAG_WIDTHS[None, :]
     w = 0.5 * (1.0 + np.cos(np.pi * u))
     w[np.abs(u) >= 1.0] = 0.0
-    w[(d < DELAI_MIN).ravel(), :] = 0.0
+    w[(d < MIN_DELAY).ravel(), :] = 0.0
     return w
 
+def build_exposition(t_obs, meal, foods):
+    """Build the design matrix for the distributed-lag model.
 
-def construire_exposition(t_obs, repas, aliments):
+    For each pain observation, accumulates the contribution of every past
+    meal, per food and per lag kernel: contributions from different meals
+    of the same food that overlap in time for a given observation are
+    summed (a food's total exposure at time t is the sum over all meals
+    containing it).
+
+    Args:
+        t_obs: (n,) array-like of pain observation times, in hours.
+        meal: List of (meal_time_hours, [normalized foods]) tuples
+            describing the meal history.
+        foods: Ordered list of foods retained for the model.
+
+    Returns:
+        (n, F*K) ndarray design matrix, where F is the number of foods
+        and K the number of lag kernels (len(LAG_CENTERS)). Column
+        block (f, k) — i.e. column f * K + k — holds, for each
+        observation, the cumulative dose of food f as seen through lag
+        kernel k.
     """
-    t_obs   : (n,) instants d'observation de la douleur, en heures
-    repas   : liste de (instant_heures, [aliments normalisés])
-    aliments: liste ordonnée des aliments retenus
-    → X (n, F*K) : colonne (f,k) = dose cumulée de l'aliment f vue par le
-      noyau de décalage k.
-    """
-    n, F, K = len(t_obs), len(aliments), len(CENTRES_LAG)
-    idx = {a: i for i, a in enumerate(aliments)}
+    n, F, K = len(t_obs), len(foods), len(LAG_CENTERS)
+    idx = {a: i for i, a in enumerate(foods)}
     X = np.zeros((n, F * K))
     t_obs = np.asarray(t_obs, dtype=float)
 
-    for t_repas, alims in repas:
-        cibles = [i for i, a in enumerate(alims) if a in idx]
-        if not cibles:
+    for meal_time_hours, norm_foods in meal:
+        targets = [i for i, a in enumerate(norm_foods) if a in idx]
+        if not targets:
             continue
-        delais = t_obs - t_repas
-        pertinents = (delais >= DELAI_MIN) & (delais <= PORTEE_MAX)
+		# Subtract the meal_time_hours from each observation time of t_obs.
+        delays = t_obs - meal_time_hours
+		# We check that the delays are within the range of MIN_DELAY and MAX_SPAN,
+        # and we only keep the relevant ones.
+        pertinents = (delays >= MIN_DELAY) & (delays <= MAX_SPAN)
         if not pertinents.any():
             continue
-        w = poids_noyaux(delais[pertinents])          # (m, K)
-        lignes = np.flatnonzero(pertinents)
-        for i in cibles:
-            j = idx[alims[i]] * K
-            X[np.ix_(lignes, np.arange(j, j + K))] += w
+        w = kernels_weights(delays[pertinents])          # (m, K)
+        lines = np.flatnonzero(pertinents)
+        for i in targets:
+            j = idx[norm_foods[i]] * K
+            X[np.ix_(lines, np.arange(j, j + K))] += w
     return X
 
 
@@ -133,7 +179,8 @@ def blanchir_ar1(y, X, Z, t_obs):
     → (y, X, Z, rho) — la première observation est consommée par la transformation.
     """
     r = y - Z @ np.linalg.lstsq(Z, y, rcond=None)[0]
-    rho = float(np.clip((r[:-1] @ r[1:]) / max(r[:-1] @ r[:-1], 1e-9), 0.0, 0.9))
+    rho = float(np.clip((r[:-1] @ r[1:]) /
+                max(r[:-1] @ r[:-1], 1e-9), 0.0, 0.9))
     dt = np.diff(np.asarray(t_obs, dtype=float))
     w = rho ** (dt / max(np.median(dt), 1e-6))
 
@@ -297,7 +344,8 @@ def group_lasso_ortho(G, c, groupes, lam, poids, beta=None,
             u = c[idx] - Gbeta[idx] + bg          # G_gg = I
             norme = np.sqrt(u @ u)
             seuil = lam * poids[gi]
-            nouveau = u * (1.0 - seuil / norme) if norme > seuil else np.zeros_like(u)
+            nouveau = u * \
+                (1.0 - seuil / norme) if norme > seuil else np.zeros_like(u)
             d = nouveau - bg
             dmax = np.abs(d).max()
             if dmax > 0.0:
@@ -372,7 +420,7 @@ def fusionner_indissociables(repas, aliments, seuil=SEUIL_JACCARD):
     for a in aliments:
         membres[racine(a)].append(a)
     blocs, sortie = [], {}
-    for r, ms in membres.items():
+    for ms in membres.values():
         nom = "+".join(sorted(ms))
         blocs.append(nom)
         sortie[nom] = sorted(ms)
@@ -384,17 +432,22 @@ def fusionner_indissociables(repas, aliments, seuil=SEUIL_JACCARD):
 #  Analyse complète
 # ══════════════════════════════════════════════════════════════════
 
-def analyser(observations, repas, min_occurrences=MIN_OCCURRENCES,
-             n_replicats=N_REPLICATS, seuil=SEUIL_STABILITE, q_max=None,
-             blanchir=True, positif=True, graine=0):
+def analyze(observations, repas, min_occurrences=MIN_OCCURRENCES,
+            n_replicats=N_REPLICATS, seuil=SEUIL_STABILITE, q_max=None,
+            blanchir=True, positif=True, graine=0):
     """
-    observations : [(instant_heures, heure_du_jour, score_douleur)]
-    repas        : [(instant_heures, [aliments normalisés])]
-    → dict de résultats
+    Args:
+        observations : [(instant_heures, heure_du_jour, score_douleur)]
+        repas        : [(instant_heures, [aliments normalisés])]
+
+    Returns:
+        dict de résultats
     """
     rng = np.random.default_rng(graine)
 
-    # -- aliments assez fréquents, puis fusion des indissociables ----
+    # We check the number of occurrences of each food in the meals and keep only
+    # those that meet the minimum occurrence threshold. Then, we merge foods
+    # that are almost always consumed together into a single block.
     compte = defaultdict(int)
     for _, alims in repas:
         for a in set(alims):
@@ -414,7 +467,7 @@ def analyser(observations, repas, min_occurrences=MIN_OCCURRENCES,
     heures = np.array([o[1] for o in observations], dtype=float)
     y = np.array([o[2] for o in observations], dtype=float)
 
-    X = construire_exposition(t_obs, repas_blocs, blocs)
+    X = build_exposition(t_obs, repas_blocs, blocs)
     Z = construire_controles(t_obs, heures)
     rho = 0.0
     if blanchir and len(y) > 4:
@@ -425,7 +478,7 @@ def analyser(observations, repas, min_occurrences=MIN_OCCURRENCES,
         y_res, X_res = residualiser(y, X, Z)
         t_obs_eff = t_obs
 
-    n, K = len(y_res), len(CENTRES_LAG)
+    n, K = len(y_res), len(LAG_CENTERS)
 
     # -- aliments structurellement indétectables ---------------------
     #  Si l'exposition à un aliment est presque entièrement absorbée par les
@@ -435,7 +488,8 @@ def analyser(observations, repas, min_occurrences=MIN_OCCURRENCES,
     #  l'écarte explicitement plutôt que de produire un résultat trompeur.
     norme_brute = np.sqrt((X ** 2).sum(axis=0))
     norme_res = np.sqrt((X_res ** 2).sum(axis=0))
-    part_libre = np.where(norme_brute > 1e-12, norme_res / np.maximum(norme_brute, 1e-12), 0.0)
+    part_libre = np.where(norme_brute > 1e-12, norme_res /
+                          np.maximum(norme_brute, 1e-12), 0.0)
     informatif = part_libre.reshape(len(blocs), K).max(axis=1) >= 0.10
     indetectables = [blocs[b] for b in np.flatnonzero(~informatif)]
     if not informatif.any():
@@ -455,7 +509,7 @@ def analyser(observations, repas, min_occurrences=MIN_OCCURRENCES,
     poids = np.full(n_blocs, np.sqrt(K))
 
     if q_max is None:
-        q_max = max(4, int(round(np.sqrt(0.8 * n_blocs))))
+        q_max = max(4, round(np.sqrt(0.8 * n_blocs)))
 
     if positif:
         G_tot = Xs.T @ Xs / n
@@ -472,7 +526,7 @@ def analyser(observations, repas, min_occurrences=MIN_OCCURRENCES,
     jour_obs = (t_obs_eff // 24).astype(int)
     jours = np.unique(jour_obs)
     debuts = list(range(0, len(jours), TAILLE_BLOC_JOURS))
-    n_tire = max(1, int(round(len(debuts) * FRACTION_SOUS_ECH)))
+    n_tire = max(1, round(len(debuts) * FRACTION_SOUS_ECH))
 
     compte_sel = np.zeros((len(lambdas), n_blocs))
     replicats_valides = 0
@@ -529,8 +583,8 @@ def analyser(observations, repas, min_occurrences=MIN_OCCURRENCES,
     #  contributions : les noyaux larges agrègent plus de repas, donc leurs
     #  colonnes ont une moyenne plus grande, ce qui biaiserait le centroïde
     #  vers les longs délais quel que soit le vrai décalage.
-    grille_d = np.linspace(0.0, PORTEE_MAX, 400)
-    base_d = poids_noyaux(grille_d)                              # (400, K)
+    grille_d = np.linspace(0.0, MAX_SPAN, 400)
+    base_d = kernels_weights(grille_d)                              # (400, K)
     for pos, b in enumerate(candidats):
         tr = slice(pos * K, (pos + 1) * K)
         reponse = base_d @ coef[tr]                              # (400,)

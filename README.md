@@ -1,5 +1,6 @@
 # Installation
 
+## Main program: gutcheck.py
 To install the dependencies, run:
 
 ```bash
@@ -21,6 +22,20 @@ To update translations, you may have to run:
 
 ```bash
 ./update_translations.sh
+```
+
+## Unit tests
+
+The unit tests work with pytest. To install it, run:
+
+```bash
+uv pip install pytest
+```
+
+To launch the tests, run:
+
+```bash
+pytest test_gutcheck_pytest.py
 ```
 
 # gutcheck — detecting foods that trigger pain

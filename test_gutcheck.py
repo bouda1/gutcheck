@@ -12,52 +12,57 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from gutcheck import load_diary
 from modele import (
-    CENTRES_LAG,
-    DELAI_MIN,
-    PORTEE_MAX,
-    analyser,
+    LAG_CENTERS,
+    MIN_DELAY,
+    MAX_SPAN,
+    analyze,
     construire_controles,
-    construire_exposition,
+    build_exposition,
     fusionner_indissociables,
     nn_group_lasso,
     normalize,
-    poids_noyaux,
+    kernels_weights,
     preparer_blocs,
     residualiser,
 )
 from simu import generer
 
-echecs = []
+GREEN = "\033[92m"
+RED = "\033[91m"
+RESET = "\033[0m"
+fails = []
 
 
-def verifier(condition, message):
-    print(f"  {'ok  ' if condition else 'ÉCHEC'}  {message}")
+def check(condition, message):
+    """ Check a condition and print the result. If the condition is False, add the message to the fails list."""
+    status = f"{GREEN}OK  {RESET}" if condition else f"{RED}FAIL{RESET}"
+    print(f"  {status}  {message}")
     if not condition:
-        echecs.append(message)
+        fails.append(message)
 
 
 print("\nnormalisation des noms")
-verifier(normalize("  Café  ") == "cafe", "accents et espaces retirés")
-verifier(normalize("Pomme-de-terre") == "pomme_de_terre", "séparateurs unifiés")
-verifier(normalize("RIZ") == normalize("riz"), "casse ignorée")
+check(normalize("  Café  ") == "cafe", "accents et espaces retirés")
+check(normalize("Pomme-de-terre") == "pomme_de_terre", "séparateurs unifiés")
+check(normalize("RIZ") == normalize("riz"), "casse ignorée")
 
 print("\nnoyaux de décalage")
-d = np.linspace(0, PORTEE_MAX, 500)
-w = poids_noyaux(d)
-verifier((w >= 0).all(), "poids toujours positifs")
-verifier((poids_noyaux([0.0, DELAI_MIN / 2]) == 0).all(),
+d = np.linspace(0, MAX_SPAN, 500)
+w = kernels_weights(d)
+check((w >= 0).all(), "poids toujours positifs")
+check((kernels_weights([0.0, MIN_DELAY / 2]) == 0).all(),
          "aucune contribution à délai nul (pas de causalité inverse)")
-interieur = d[(d >= DELAI_MIN) & (d <= CENTRES_LAG[-1])]
-verifier(poids_noyaux(interieur).sum(axis=1).min() > 0.2,
+interieur = d[(d >= MIN_DELAY) & (d <= LAG_CENTERS[-1])]
+check(kernels_weights(interieur).sum(axis=1).min() > 0.2,
          "couverture continue : aucun délai sans noyau")
-verifier(poids_noyaux([PORTEE_MAX * 2]).sum() == 0, "nul au-delà de la portée")
+check(kernels_weights([MAX_SPAN * 2]).sum() == 0, "nul au-delà de la portée")
 
 print("\nmatrice d'exposition")
-X = construire_exposition([10.0, 100.0], [(8.0, ["a"]), (95.0, ["b"])], ["a", "b"])
-K = len(CENTRES_LAG)
-verifier(X[0, :K].sum() > 0, "le repas 2 h avant expose l'aliment a")
-verifier(X[0, K:].sum() == 0, "un repas postérieur n'expose rien")
-verifier(X[1, K:].sum() > 0, "le repas 5 h avant expose l'aliment b")
+X = build_exposition([10.0, 100.0], [(8.0, ["a"]), (95.0, ["b"])], ["a", "b"])
+K = len(LAG_CENTERS)
+check(X[0, :K].sum() > 0, "le repas 2 h avant expose l'aliment a")
+check(X[0, K:].sum() == 0, "un repas postérieur n'expose rien")
+check(X[1, K:].sum() > 0, "le repas 5 h avant expose l'aliment b")
 
 print("\nrésidualisation (Frisch-Waugh-Lovell)")
 rng = np.random.default_rng(0)
@@ -65,8 +70,8 @@ Z = construire_controles(np.arange(40) * 6.0, (np.arange(40) * 6.0) % 24)
 Xr = rng.normal(size=(40, 5))
 yr = Z @ np.arange(1, 7) + Xr @ np.array([2.0, 0, 0, 0, 0]) + rng.normal(0, .1, 40)
 y_res, X_res = residualiser(yr, Xr, Z)
-verifier(np.abs(Z.T @ y_res).max() < 1e-8, "y résiduel orthogonal aux contrôles")
-verifier(np.abs(Z.T @ X_res).max() < 1e-8, "X résiduel orthogonal aux contrôles")
+check(np.abs(Z.T @ y_res).max() < 1e-8, "y résiduel orthogonal aux contrôles")
+check(np.abs(Z.T @ X_res).max() < 1e-8, "X résiduel orthogonal aux contrôles")
 
 print("\ngroup-lasso positif")
 n, G_blocs = 200, 6
@@ -79,14 +84,14 @@ Gm, cm = Xg.T @ Xg / n, Xg.T @ yg / n
 b = nn_group_lasso(Gm, cm, groupes, 0.15, np.full(G_blocs, np.sqrt(K)),
                    preparer_blocs(Gm, groupes))
 actifs = [g for g in range(G_blocs) if b[groupes[g]].max() > 0]
-verifier(actifs == [1], f"seul le groupe planté est sélectionné (obtenu {actifs})")
-verifier((b >= 0).all(), "contrainte de positivité respectée")
+check(actifs == [1], f"seul le groupe planté est sélectionné (obtenu {actifs})")
+check((b >= 0).all(), "contrainte de positivité respectée")
 
 print("\nfusion des aliments indissociables")
 repas = [(float(i), ["ail", "oignon"] + (["riz"] if i % 2 else [])) for i in range(10)]
 blocs, membres = fusionner_indissociables(repas, ["ail", "oignon", "riz"])
-verifier("ail+oignon" in blocs, "aliments toujours ensemble fusionnés")
-verifier("riz" in blocs, "aliment indépendant non fusionné")
+check("ail+oignon" in blocs, "aliments toujours ensemble fusionnés")
+check("riz" in blocs, "aliment indépendant non fusionné")
 
 print("\nlecture CSV robuste")
 contenu = """{date},{heure},{repas},{aliments},{douleur}
@@ -110,22 +115,22 @@ with tempfile.NamedTemporaryFile("w", suffix=".csv", delete=False,
     path = f.name
 obs, rep, avert = load_diary(path)
 os.unlink(path)
-verifier([o[0] for o in obs] == sorted(o[0] for o in obs), "relevés triés")
-verifier(len(rep) == 3, f"3 repas lus (obtenu {len(rep)})")
-verifier(len(obs) == 3, f"3 relevés de douleur valides (obtenu {len(obs)})")
-verifier(any("sans heure" in a for a in avert), "heure vide signalée en bloc")
-verifier(abs((rep[1][0] - rep[0][0]) - 0.5) < 1e-9,
+check([o[0] for o in obs] == sorted(o[0] for o in obs), "relevés triés")
+check(len(rep) == 3, f"3 repas lus (obtenu {len(rep)})")
+check(len(obs) == 3, f"3 relevés de douleur valides (obtenu {len(obs)})")
+check(any("sans heure" in a for a in avert), "heure vide signalée en bloc")
+check(abs((rep[1][0] - rep[0][0]) - 0.5) < 1e-9,
          "heure vide → 12:00 (30 min avant le déjeuner de 12:30)")
-verifier(any("abc" in a for a in avert), "douleur illisible signalée")
-verifier(any("pas-une-date" in a for a in avert), "date illisible signalée")
-verifier(["cafe", "pain"] == rep[0][1], f"noms normalisés (obtenu {rep[0][1]})")
+check(any("abc" in a for a in avert), "douleur illisible signalée")
+check(any("pas-une-date" in a for a in avert), "date illisible signalée")
+check(["cafe", "pain"] == rep[0][1], f"noms normalisés (obtenu {rep[0][1]})")
 
 print("\nclasseur LibreOffice Calc (.ods)")
 from spreadsheet import ecrire_ods, lire_feuille, normalize_header, read_ods
 
-verifier(normalize_header("  Douleur (0-10) ") == "douleur",
+check(normalize_header("  Douleur (0-10) ") == "douleur",
          "en-tête décoré normalisé")
-verifier(normalize_header("Aliments") == "aliments", "en-tête casse ignorée")
+check(normalize_header("Aliments") == "aliments", "en-tête casse ignorée")
 
 chemin_ods = os.path.join(tempfile.gettempdir(), "alim_test.ods")
 ecrire_ods(chemin_ods, [
@@ -136,18 +141,18 @@ ecrire_ods(chemin_ods, [
     ["2026-03-02", "19:00", "diner", "soupe", 5],
 ])
 d = read_ods(chemin_ods)
-verifier(len(d) == 4, f"4 lignes de données lues (obtenu {len(d)})")
-verifier(d[0]["date"] == "2026-03-01",
+check(len(d) == 4, f"4 lignes de données lues (obtenu {len(d)})")
+check(d[0]["date"] == "2026-03-01",
          "cellule DATE typée relue en ISO (pas le texte affiché)")
-verifier(d[0]["time"] == "08:00",
+check(d[0]["time"] == "08:00",
          f"cellule HEURE typée relue en HH:MM (obtenu {d[0]['time']!r})")
-verifier(d[0]["pain"] == "2", "cellule numérique sans décimale parasite")
-verifier(d[2]["pain"] == "", "cellule vide en fin de ligne = chaîne vide")
+check(d[0]["pain"] == "2", "cellule numérique sans décimale parasite")
+check(d[2]["pain"] == "", "cellule vide en fin de ligne = chaîne vide")
 
 obs_o, rep_o, _ = load_diary(chemin_ods)
-verifier(len(rep_o) == 3 and len(obs_o) == 3,
+check(len(rep_o) == 3 and len(obs_o) == 3,
          "journal .ods chargé comme son équivalent CSV")
-verifier(rep_o[0][1] == ["cafe", "pain"], "noms normalisés depuis le classeur")
+check(rep_o[0][1] == ["cafe", "pain"], "noms normalisés depuis le classeur")
 
 #  Without a data style, Calc would display the internal value of a date
 #  (number of days since the epoch) instead of the date.
@@ -157,19 +162,19 @@ import zipfile as _zip0
 with _zip0.ZipFile(chemin_ods) as z:
     contenu_xml = z.read("content.xml").decode()
     entrees = z.namelist()
-verifier("<number:date-style" in contenu_xml, "format d'affichage des dates déclaré")
-verifier("<number:time-style" in contenu_xml, "format d'affichage des heures déclaré")
+check("<number:date-style" in contenu_xml, "format d'affichage des dates déclaré")
+check("<number:time-style" in contenu_xml, "format d'affichage des heures déclaré")
 declares = set(_re.findall(r'<style:style style:name="([^"]+)"', contenu_xml))
 utilises = set(_re.findall(r'table:style-name="([^"]+)"', contenu_xml))
-verifier(utilises and utilises <= declares,
+check(utilises and utilises <= declares,
          f"tout style référencé est déclaré (utilisés {sorted(utilises)})")
-verifier(_re.search(r'office:value-type="date"[^>]*>', contenu_xml) and
+check(_re.search(r'office:value-type="date"[^>]*>', contenu_xml) and
          all('table:style-name=' in c for c in
              _re.findall(r'<table:table-cell[^>]*office:value-type="(?:date|time)"[^>]*>',
                          contenu_xml)),
          "chaque cellule date/heure porte un style d'affichage")
-verifier(entrees[0] == "mimetype", "mimetype en première entrée de l'archive")
-verifier("styles.xml" in entrees, "styles.xml présent dans le paquet")
+check(entrees[0] == "mimetype", "mimetype en première entrée de l'archive")
+check("styles.xml" in entrees, "styles.xml présent dans le paquet")
 
 # compressed empty cells, as Calc actually does at the end of a sheet
 import zipfile as _zip
@@ -193,39 +198,39 @@ contenu = ('<?xml version="1.0" encoding="UTF-8"?>'
 with _zip.ZipFile(chemin_ods, "w") as z:
     z.writestr("content.xml", contenu)
 brut = lire_feuille(chemin_ods)
-verifier(len(brut) == 1, f"lignes vides répétées non matérialisées "
+check(len(brut) == 1, f"lignes vides répétées non matérialisées "
                          f"(obtenu {len(brut)})")
-verifier(brut[0] == ["date", "", "", "", "douleur"],
+check(brut[0] == ["date", "", "", "", "douleur"],
          f"colonnes vides intercalées développées (obtenu {brut[0]})")
 os.unlink(chemin_ods)
 
 print("\nformats de date et d'heure tolérés")
 #from gutcheck import analyze_date, analyser_heure
-#verifier(analyze_date("2026-08-31") is not None, "ISO")
-#verifier(analyze_date("31/08/2026").month == 8, "jour/mois/année (français)")
-#verifier(analyze_date("31.08.2026").day == 31, "séparateur point")
-#verifier(analyze_date("pas-une-date") is None, "date invalide rejetée")
-#verifier(analyser_heure("8:00") == (8, 0), "heure sans zéro initial")
-#verifier(analyser_heure("08:00:00") == (8, 0), "heure avec secondes")
-#verifier(analyser_heure("08h30") == (8, 30), "notation 08h30")
-#verifier(analyser_heure("25:00") is None, "heure hors bornes rejetée")
+#check(analyze_date("2026-08-31") is not None, "ISO")
+#check(analyze_date("31/08/2026").month == 8, "jour/mois/année (français)")
+#check(analyze_date("31.08.2026").day == 31, "séparateur point")
+#check(analyze_date("pas-une-date") is None, "date invalide rejetée")
+#check(analyser_heure("8:00") == (8, 0), "heure sans zéro initial")
+#check(analyser_heure("08:00:00") == (8, 0), "heure avec secondes")
+#check(analyser_heure("08h30") == (8, 30), "notation 08h30")
+#check(analyser_heure("25:00") is None, "heure hors bornes rejetée")
 
 print("\ndétection de bout en bout (56 jours, protocole recommandé)")
 o, r, verite = generer(n_jours=56, graine=0,
                        heures_releve=[7, 10, 13, 16, 19, 22])
-res = analyser(o, r, n_replicats=80, graine=0)
+res = analyze(o, r, n_replicats=80, graine=0)
 retenus = {res["blocs"][i] for i in res["retenus"]}
-verifier(set(verite) <= retenus,
+check(set(verite) <= retenus,
          f"les 3 coupables sont retenus (retenus : {sorted(retenus)})")
-verifier(len(retenus - set(verite)) <= 1,
+check(len(retenus - set(verite)) <= 1,
          f"au plus 1 faux positif (obtenu {sorted(retenus - set(verite))})")
 for nom, (lag_vrai, _) in verite.items():
     est = res["decalages"][res["blocs"].index(nom)]
-    verifier(abs(est - lag_vrai) <= 8,
+    check(abs(est - lag_vrai) <= 8,
              f"décalage de {nom} : {est:.0f} h estimé vs {lag_vrai:.0f} h réel")
 
 print(f"\n{'-'*60}")
-if echecs:
-    print(f"  {len(echecs)} ÉCHEC(S)")
+if fails:
+    print(f"  {len(fails)} ÉCHEC(S)")
     sys.exit(1)
 print("  tous les tests passent")

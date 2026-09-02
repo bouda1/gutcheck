@@ -16,7 +16,7 @@ Le générateur reproduit exprès les pièges du problème réel :
 import numpy as np
 from babel.dates import format_date
 
-from modele import analyser, normalize
+from modele import analyze, normalize
 from i18n import _, n_
 
 MOMENTS = [(8.0, _("breakfast")), (12.5, _("lunch")), (19.0, _("dinner"))]
@@ -57,7 +57,7 @@ def reponse(delais, centre, largeur=7.0):
 def generer(n_jours=28, coupables=None, graine=0, bruit=1.0,
             amplitude_circadienne=1.2, autocorr=0.45, base=2.5,
             heures_releve=None, douleur_aux_repas=True):
-    """→ (observations, repas, verite) au format attendu par modele.analyser."""
+    """→ (observations, repas, verite) au format attendu par modele.analyze."""
     rng = np.random.default_rng(graine)
     if coupables is None:
         coupables = [("fromage", 26.0, 2.2), ("vin", 6.0, 2.0),
@@ -115,7 +115,7 @@ def _un_journal(params):
     n_jours, heures, seuil, n_replicats, graine = params
     obs, repas, verite = generer(n_jours=n_jours, graine=graine,
                                  heures_releve=heures)
-    res = analyser(obs, repas, n_replicats=n_replicats, seuil=seuil,
+    res = analyze(obs, repas, n_replicats=n_replicats, seuil=seuil,
                    graine=graine)
     if "erreur" in res:
         return None
@@ -171,7 +171,7 @@ def evaluer(n_seeds=12, n_jours=28, n_replicats=120, seuil=None,
         obs, repas, verite = generer(n_jours=n_jours, graine=s,
                                      heures_releve=heures_releve, **kw)
         n_obs = len(obs)
-        res = analyser(obs, repas, n_replicats=n_replicats, seuil=seuil, graine=s)
+        res = analyze(obs, repas, n_replicats=n_replicats, seuil=seuil, graine=s)
         if "erreur" in res:
             continue
         blocs, membres, vrais = res["blocs"], res["membres"], set(verite)
