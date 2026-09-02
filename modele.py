@@ -22,6 +22,7 @@ FRÉQUENCE DE SÉLECTION sous ré-échantillonnage par blocs de jours
 
 import unicodedata
 from collections import defaultdict
+from i18n import _
 
 import numpy as np
 
@@ -400,7 +401,7 @@ def analyser(observations, repas, min_occurrences=MIN_OCCURRENCES,
             compte[a] += 1
     frequents = sorted(a for a, c in compte.items() if c >= min_occurrences)
     if not frequents:
-        return {"erreur": "aucun aliment n'atteint le minimum d'occurrences",
+        return {"error": _("no food reaches the minimum number of occurrences"),
                 "compte": dict(compte)}
 
     blocs, membres = fusionner_indissociables(repas, frequents)
@@ -438,8 +439,8 @@ def analyser(observations, repas, min_occurrences=MIN_OCCURRENCES,
     informatif = part_libre.reshape(len(blocs), K).max(axis=1) >= 0.10
     indetectables = [blocs[b] for b in np.flatnonzero(~informatif)]
     if not informatif.any():
-        return {"erreur": "aucun aliment ne varie assez pour être testé "
-                          "(alimentation trop régulière)"}
+        return {"error": _("no food varies enough to be tested "
+                           "(diet too regular)")}
     if not informatif.all():
         gardes = np.flatnonzero(informatif)
         cols = np.concatenate([np.arange(b * K, (b + 1) * K) for b in gardes])
@@ -501,7 +502,7 @@ def analyser(observations, repas, min_occurrences=MIN_OCCURRENCES,
             compte_sel[li, actifs] += 1
 
     if replicats_valides == 0:
-        return {"erreur": "journal trop court pour le ré-échantillonnage"}
+        return {"error": _("log too short for resampling")}
 
     frequences = compte_sel.max(axis=0) / replicats_valides
 

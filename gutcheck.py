@@ -177,8 +177,8 @@ def display(res, avert):
         for a in avert:
             print(f"    · {a}")
 
-    if "erreur" in res:
-        print(f"\n  Analyse impossible : {res['erreur']}\n")
+    if "error" in res:
+        print(f"\n  Analyse impossible : {res['error']}\n")
         return
 
     print(f"\n{'='*72}")

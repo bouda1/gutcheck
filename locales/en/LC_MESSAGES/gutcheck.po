@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-01 20:00+0200\n"
+"POT-Creation-Date: 2026-09-02 12:10+0200\n"
 "PO-Revision-Date: 2026-08-31 17:27+0200\n"
 "Last-Translator: David Boucher <boudav@gmail.com>\n"
 "Language-Team: English\n"
@@ -169,24 +169,36 @@ msgstr ""
 msgid "dinner"
 msgstr ""
 
-#: test_gutcheck.py:88
+#: test_gutcheck.py:100
 msgid "Date"
 msgstr ""
 
-#: test_gutcheck.py:88 test_gutcheck.py:115
+#: test_gutcheck.py:101 test_gutcheck.py:132
 msgid "Time"
 msgstr ""
 
-#: test_gutcheck.py:88 test_gutcheck.py:115
+#: test_gutcheck.py:102 test_gutcheck.py:132
 msgid "Meal"
 msgstr ""
 
-#: test_gutcheck.py:89 test_gutcheck.py:115
+#: test_gutcheck.py:103 test_gutcheck.py:132
 msgid "Foods"
 msgstr ""
 
-#: test_gutcheck.py:89 test_gutcheck.py:115
+#: test_gutcheck.py:104 test_gutcheck.py:132
 msgid "Pain (0-10)"
+msgstr ""
+
+#: modele.py:404
+msgid "no food reaches the minimum number of occurrences"
+msgstr ""
+
+#: modele.py:442
+msgid "no food varies enough to be tested (diet too regular)"
+msgstr ""
+
+#: modele.py:505
+msgid "log too short for resampling"
 msgstr ""
 
 #~ msgid ""
