@@ -46,8 +46,15 @@ SEUIL_JACCARD = 0.85      # au-delà : aliments indissociables, fusionnés
 #  Normalisation des noms d'aliments
 # ══════════════════════════════════════════════════════════════════
 
-def normaliser(nom):
-    """minuscules, sans accent, séparateurs unifiés."""
+def normalize(nom):
+    """ Normalize a food name to a canonical form: lowercase, no accents, unified separators.
+
+    Args:
+        nom (str): The food name to normalize.
+
+    Returns:
+        str: The normalized food name.
+    """
     nom = unicodedata.normalize("NFKD", nom.strip().lower())
     nom = "".join(c for c in nom if not unicodedata.combining(c))
     return "_".join(nom.replace("-", " ").replace("_", " ").split())

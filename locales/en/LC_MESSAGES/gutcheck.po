@@ -7,40 +7,205 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-31 17:27+0200\n"
+"POT-Creation-Date: 2026-09-01 20:00+0200\n"
 "PO-Revision-Date: 2026-08-31 17:27+0200\n"
 "Last-Translator: David Boucher <boudav@gmail.com>\n"
 "Language-Team: English\n"
 "Language: en\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=ASCII\n"
+"Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: gutcheck.py:41
+#: gutcheck.py:34 simu.py:233
 msgid "date"
 msgstr "date"
 
-#: gutcheck.py:41
-msgid "heure"
-msgstr "heure"
+#: gutcheck.py:34 gutcheck.py:57 simu.py:233 spreadsheet.py:150
+msgid "time"
+msgstr ""
 
-#: gutcheck.py:41
-msgid "repas"
-msgstr "repas"
+#: gutcheck.py:34 gutcheck.py:59 simu.py:233 spreadsheet.py:152
+msgid "meal"
+msgstr ""
 
-#: gutcheck.py:41
-msgid "aliments"
-msgstr "aliments"
+#: gutcheck.py:34 gutcheck.py:58 simu.py:233 spreadsheet.py:151
+msgid "foods"
+msgstr ""
 
-#: gutcheck.py:41
-msgid "douleur"
-msgstr "douleur"
+#: gutcheck.py:34 gutcheck.py:60 simu.py:233 spreadsheet.py:153
+msgid "pain"
+msgstr ""
 
-#: gutcheck.py:172
+#: gutcheck.py:90
+#, python-format
+msgid "missing column(s): %(missing)s  — expected: %(await)s"
+msgstr ""
+
+#: gutcheck.py:176
 msgid ""
 "\n"
-"  Avertissements :"
+"  Warning:"
 msgstr ""
+
+#: gutcheck.py:185
+#, python-format
+msgid ""
+"  %(days)s days · %(obs)s pain entries · %(nb)s foods analyzed "
+"(autocorrelation removed: rho = %(rho).2f)"
+msgstr ""
+
+#: gutcheck.py:199
+msgid "Food"
+msgstr ""
+
+#: gutcheck.py:199
+msgid "Stability"
+msgstr ""
+
+#: gutcheck.py:199
+msgid "Lag"
+msgstr ""
+
+#: gutcheck.py:200
+msgid "Peak"
+msgstr ""
+
+#: gutcheck.py:200
+msgid "Effect"
+msgstr ""
+
+#: gutcheck.py:200
+msgid "n meals"
+msgstr ""
+
+#: gutcheck.py:243
+msgid "  Next step — observation alone doesn't prove causality."
+msgstr ""
+
+#: gutcheck.py:244
+#, python-format
+msgid "  Remove %(aliment)s for 2 weeks while keeping the journal,"
+msgstr ""
+
+#: gutcheck.py:247
+msgid "  then reintroduce it. One food at a time."
+msgstr ""
+
+#: gutcheck.py:249
+#, python-format
+msgid "  Next candidates: %(liste)s."
+msgstr ""
+
+#: gutcheck.py:253
+msgid "  No food stands out consistently."
+msgstr ""
+
+#: gutcheck.py:254
+msgid "  Possible causes: journal too short, effect genuinely weak, or"
+msgstr ""
+
+#: gutcheck.py:255
+msgid "  food eaten almost every day (no \"without\" days"
+msgstr ""
+
+#: gutcheck.py:256
+msgid "  to compare against). Extend the journal or vary your diet."
+msgstr ""
+
+#: gutcheck.py:260
+msgid ""
 "\n"
-"  Avertissements :"
+"Two formats accepted: CSV, or LibreOffice Calc spreadsheet (.ods).\n"
+"\n"
+"Expected columns — date,time,meal,foods,pain\n"
+"\n"
+"  date,time,meal,foods,pain\n"
+"  2026-08-31,08:00,breakfast,eggs; bread; coffee,2\n"
+"  2026-08-31,11:00,,,4              ← pain reading alone\n"
+"  2026-08-31,12:30,lunch,rice; chicken; vegetables,4\n"
+"  2026-08-31,19:00,dinner,soup; cheese,\n"
+"\n"
+"Input tolerances:\n"
+"  - headers  : case, accents and suffixes ignored (\"Pain (0-10)\" works "
+"too);\n"
+"  - dates    : 2026-08-31, 08/31/2026, 08.31.2026;\n"
+"  - times    : 08:00, 8:00, 08:00:00, 8:30am;\n"
+"  - in an .ods file, date/time cells typed by Calc are read at their\n"
+"    actual value, not their local display.\n"
+"\n"
+"Two tips that matter more than the algorithm:\n"
+"\n"
+"  1. Record pain OUTSIDE of meals (empty foods columns), every\n"
+"     3-4 hours. If pain is only noted at meals, \"12 h offset\n"
+"     after breakfast\" and \"in the evening\" are the same thing: nothing\n"
+"     lets you tell them apart.\n"
+"\n"
+"  2. VARY your diet. A food eaten every day without exception is\n"
+"     undetectable no matter its effect: there is no comparison\n"
+"     day available.\n"
+msgstr ""
+
+#: gutcheck.py:342
+#, python-format
+msgid ""
+"\n"
+"  Diary too short: %(obs)s pain entries, %(meals)s meals."
+msgstr ""
+
+#: gutcheck.py:347
+msgid "  You need at least about ten days. See --aide-format.\n"
+msgstr ""
+
+#: simu.py:22 simu.py:222
+msgid "breakfast"
+msgstr ""
+
+#: simu.py:22 simu.py:222
+msgid "lunch"
+msgstr ""
+
+#: simu.py:22 simu.py:222
+msgid "dinner"
+msgstr ""
+
+#: test_gutcheck.py:88
+msgid "Date"
+msgstr ""
+
+#: test_gutcheck.py:88 test_gutcheck.py:115
+msgid "Time"
+msgstr ""
+
+#: test_gutcheck.py:88 test_gutcheck.py:115
+msgid "Meal"
+msgstr ""
+
+#: test_gutcheck.py:89 test_gutcheck.py:115
+msgid "Foods"
+msgstr ""
+
+#: test_gutcheck.py:89 test_gutcheck.py:115
+msgid "Pain (0-10)"
+msgstr ""
+
+#~ msgid ""
+#~ "\n"
+#~ "  Avertissements :"
+#~ msgstr ""
+#~ "\n"
+#~ "  Avertissements :"
+
+#, fuzzy
+#~ msgid "aliments"
+#~ msgstr "aliments"
+
+#~ msgid "douleur"
+#~ msgstr "douleur"
+
+#, fuzzy
+#~ msgid "n repas"
+#~ msgstr "repas"
+
+#~ msgid "heure"
+#~ msgstr "heure"

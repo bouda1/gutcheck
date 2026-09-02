@@ -21,124 +21,121 @@ CSV format: date,time,meal,foods,pain
 """
 
 import csv
-import re
 import sys
-import gettext
-import locale
 from datetime import datetime
 
 import numpy as np
+from babel.dates import parse_date, parse_time
 
-from modele import analyser, normaliser, SEUIL_STABILITE, MIN_OCCURRENCES
-from spreadsheet import read_ods, normaliser_entete
+from i18n import _
+from modele import MIN_OCCURRENCES, SEUIL_STABILITE, analyser, normalize
+from spreadsheet import normalize_header, read_ods
 
-lang_code = locale.getlocale()[0] or 'fr'
-lang_code = lang_code.split('_')[0] # fr_FR => fr
-
-lang = gettext.translation("gutcheck", localedir="locales", languages=[lang_code], fallback=True)
-_ = lang.gettext
-
-COLONNES_ATTENDUES = (_("date"), _("heure"), _("repas"), _("aliments"), _("douleur"))
+COLUMNS = (_("date"), _("time"), _("meal"), _("foods"), _("pain"))
 
 
-def read_lines(file, feuille=None):
+def read_lines(file, sheet=None):
     """
     Read a diary, whatever its format, and return dictionaries
-    column → text. Headers are normalized ("Douleur (0-10)" →
-    "douleur") to tolerate the formatting of a real spreadsheet.
+    column → text. Headers are normalized ("Pain (0-10)" →
+    "pain") to tolerate the formatting of a real spreadsheet.
+
+    Args:
+        file (str): path to the diary file (CSV or ODS)
+        sheet (str, optional): sheet name for ODS files; defaults to the first sheet
+
+    Returns:
+        list: list of dictionaries representing each row in the diary
     """
     if file.lower().endswith((".ods", ".fods")):
-        return read_ods(file, feuille)
+        return read_ods(file, sheet)
     with open(file, encoding="utf-8-sig", newline="") as f:
         reader = csv.reader(f)
         try:
-            entetes = [normaliser_entete(x) for x in next(reader)]
+            headers = [normalize_header(x) for x in next(reader)]
+            replacements = {
+                _("time"): "time",
+                _("foods"): "foods",
+                _("meal"): "meal",
+                _("pain"): "pain",
+            }
+
+            headers = [replacements.get(x, x) for x in headers]
         except StopIteration:
             return []
-        return [dict(zip(entetes, ligne + [""] * (len(entetes) - len(ligne))))
-                for ligne in reader if any(x.strip() for x in ligne)]
+        return [dict(zip(headers, line + [""] * (len(headers) - len(line))))
+                for line in reader if any(x.strip() for x in line)]
 
 
-FORMATS_DATE = ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%Y/%m/%d", "%d.%m.%Y")
+def load_diary(file, sheet=None):
+    """ Load a diary from CSV or LibreOffice Calc, and return
+    observations (pain readings), meals (foods eaten), and warnings.
+    Each observation is a tuple (hours_since_first, hour_of_day, pain_value).
+    Each meal is a tuple (hours_since_first, list_of_foods).
 
-
-def analyser_date(texte):
-    """Tolère les formats usuels : un classeur français écrit 31/08/2026."""
-    for f in FORMATS_DATE:
-        try:
-            return datetime.strptime(texte, f)
-        except ValueError:
-            continue
-    return None
-
-
-def analyser_heure(texte):
-    """→ (heure, minute) ; accepte 8:00, 08:00, 08:00:00, 08h00."""
-    m = re.fullmatch(r"\s*(\d{1,2})\s*[:hH]\s*(\d{1,2})(?:\s*[:.]\s*\d{1,2})?\s*",
-                     texte)
-    if not m:
-        return None
-    h, mn = int(m.group(1)), int(m.group(2))
-    return (h, mn) if 0 <= h < 24 and 0 <= mn < 60 else None
-
-
-def charger_journal(file, feuille=None):
-    """→ (observations, repas, avertissements) en heures depuis la 1re ligne."""
-    lignes, avert, sans_heure = [], [], 0
-    raw = read_lines(file, feuille)
-    manquantes = [c for c in ("date", "aliments", "douleur")
+    Args:
+        file (str): path to the diary file (CSV or ODS)
+        sheet (str, optional): sheet name for ODS files; defaults to the first sheet
+    Returns:
+        tuple: (observations, meals, warnings)
+            observations: list of tuples (hours_since_first, hour_of_day, pain_value)
+            meals: list of tuples (hours_since_first, list_of_foods)
+            warnings: list of warning messages
+    """
+    lines, avert, no_time = [], [], 0
+    raw = read_lines(file, sheet)
+    missings = [c for c in ("date", "foods", "pain")
                   if raw and c not in raw[0]]
-    if manquantes:
-        avert.append(f"colonne(s) absente(s) : {', '.join(manquantes)} — "
-                     f"attendu : {', '.join(COLONNES_ATTENDUES)}")
-    for num, ligne in enumerate(raw, start=2):
-        texte_date = (ligne.get("date") or "").strip()
+    if missings:
+        avert.append(_("missing column(s): %(missing)s  — expected: %(await)s") % {"missing": ', '.join(missings), "await": ', '.join(COLUMNS)})
+    for num, line in enumerate(raw, start=2):
+        texte_date = (line.get("date") or "").strip()
         if not texte_date:
             continue
         try:
-            d = datetime.strptime(texte_date, "%Y-%m-%d")
+            d = parse_date(texte_date)
         except ValueError:
             avert.append(f"ligne {num} : date « {texte_date} » ignorée")
             continue
 
-        texte_heure = (ligne.get("heure") or "").strip()
+        texte_heure = (line.get("time") or "").strip()
         if not texte_heure:
-            sans_heure += 1
+            no_time += 1
             texte_heure = "12:00"
         try:
-            h = datetime.strptime(texte_heure, "%H:%M")
+            h = parse_time(texte_heure)
         except ValueError:
             avert.append(f"ligne {num} : heure « {texte_heure} » → 12:00")
-            h = datetime.strptime("12:00", "%H:%M")
-        ts = d.replace(hour=h.hour, minute=h.minute)
+            h = parse_time("12:00")
+        ts = datetime.combine(d, h)
 
-        aliments = [normaliser(a) for a in (ligne.get("aliments") or "").split(";")]
+        aliments = [normalize(a) for a in (line.get("foods") or "").split(";")]
         aliments = sorted({a for a in aliments if a})
 
-        texte_douleur = (ligne.get("douleur") or "").strip()
+        texte_douleur = (line.get("pain") or "").strip()
         douleur = None
         if texte_douleur:
             try:
                 douleur = float(texte_douleur.replace(",", "."))
             except ValueError:
                 avert.append(f"ligne {num} : douleur « {texte_douleur} » ignorée")
-        lignes.append((ts, aliments, douleur))
+        lines.append((ts, aliments, douleur))
 
-    if sans_heure:
-        avert.append(f"{sans_heure} ligne(s) sans heure → 12:00 supposé ; "
+    if no_time:
+        avert.append(f"{no_time} ligne(s) sans heure → 12:00 supposé ; "
                      "une heure fausse dégrade l'estimation du décalage")
-    if not lignes:
+    if not lines:
         return [], [], avert + ["aucune ligne exploitable"]
 
     #  Tri chronologique : le blanchiment AR(1) et le découpage en blocs de
     #  jours supposent des relevés ordonnés, or rien ne garantit que le CSV l'est.
-    lignes.sort(key=lambda x: x[0])
-    origine = lignes[0][0]
+    lines.sort(key=lambda x: x[0])
+    origine = lines[0][0]
     en_heures = lambda t: (t - origine).total_seconds() / 3600.0
 
-    repas = [(en_heures(t), a) for t, a, _ in lignes if a]
+    repas = [(en_heures(t), a) for t, a, _ in lines if a]
     observations = [(en_heures(t), t.hour + t.minute / 60.0, d)
-                    for t, _, d in lignes if d is not None]
+                    for t, _, d in lines if d is not None]
     return observations, repas, avert + noms_suspects(repas)
 
 
@@ -156,20 +153,27 @@ def noms_suspects(repas, distance_max=1):
 
 
 def _distance(a, b):
-    prec = list(range(len(b) + 1))
+    """ Levenshtein distance (edit distance) between two strings.
+
+    Args:
+        a (str): first string
+        b (str): second string
+
+    Returns:
+        int: Levenshtein distance between a and b
+    """
+    prev = list(range(len(b) + 1))
     for i, ca in enumerate(a, 1):
-        cour = [i]
+        current = [i]
         for j, cb in enumerate(b, 1):
-            cour.append(min(prec[j] + 1, cour[j - 1] + 1, prec[j - 1] + (ca != cb)))
-        prec = cour
-    return prec[-1]
+            current.append(min(prev[j] + 1, current[j - 1] + 1, prev[j - 1] + (ca != cb)))
+        prev = current
+    return prev[-1]
 
 
-# ══════════════════════════════════════════════════════════════════
-
-def afficher(res, avert):
+def display(res, avert):
     if avert:
-        print(_("\n  Avertissements :"))
+        print(_("\n  Warning:"))
         for a in avert:
             print(f"    · {a}")
 
@@ -178,17 +182,22 @@ def afficher(res, avert):
         return
 
     print(f"\n{'='*72}")
-    print(f"  {res['n_jours']} jours · {res['n_observations']} relevés de douleur "
-          f"· {len(res['blocs'])} aliments analysés "
-          f"(autocorrélation retirée : rho = {res['rho_ar1']:.2f})")
+    print(_("  %(days)s days · %(obs)s pain entries "
+            "· %(nb)s foods analyzed "
+            "(autocorrelation removed: rho = %(rho).2f)") % {
+                "days": res['n_jours'],
+                "obs": res['n_observations'],
+                "nb": len(res['blocs']),
+                "rho": res['rho_ar1'],
+    })
     print(f"{'='*72}\n")
 
     ordre = np.argsort(-res["frequences"])
     seuil = res["seuil"]
     retenus = set(res["retenus"].tolist())
 
-    print(f"  {'Aliment':<24} {'Stabilité':>10} {'Décalage':>9} "
-          f"{'Pic':>7} {'Effet':>7}  {'n repas':>7}")
+    print(f"  {_('Food'):<24} {_('Stability'):>10} {_('Lag'):>9} "
+                f"{_('Peak'):>7} {_('Effect'):>7}  {_('n meals'):>7}")
     print(f"  {'-'*24} {'-'*10} {'-'*9} {'-'*7} {'-'*7}  {'-'*7}")
     for i in ordre[:12]:
         f = res["frequences"][i]
@@ -231,48 +240,52 @@ def afficher(res, avert):
     tete = [res["blocs"][i] for i in ordre if res["frequences"][i] >= seuil][:3]
     print(f"\n{'-'*72}")
     if tete:
-        print("  Étape suivante — l'observation seule ne prouve pas la causalité.")
-        print(f"  Supprimez {tete[0]} pendant 2 semaines en gardant le journal,")
-        print("  puis réintroduisez-le. Un seul aliment à la fois.")
+        print(_("  Next step — observation alone doesn't prove causality."))
+        print(_("  Remove %(aliment)s for 2 weeks while keeping the journal,") % {
+                    "aliment": tete[0],
+        })
+        print(_("  then reintroduce it. One food at a time."))
         if len(tete) > 1:
-            print(f"  Candidats suivants : {', '.join(tete[1:])}.")
+            print(_("  Next candidates: %(liste)s.") % {
+                      "liste": ', '.join(tete[1:]),
+            })
     else:
-        print("  Aucun aliment ne ressort de façon stable.")
-        print("  Causes possibles : journal trop court, effet réel faible, ou")
-        print("  aliment consommé presque tous les jours (pas de jours « sans »")
-        print("  pour le comparer). Allongez le journal ou variez l'alimentation.")
+        print(_("  No food stands out consistently."))
+        print(_("  Possible causes: journal too short, effect genuinely weak, or"))
+        print(_("  food eaten almost every day (no \"without\" days"))
+        print(_("  to compare against). Extend the journal or vary your diet."))
     print(f"{'-'*72}\n")
 
 
-AIDE_FORMAT = """
-Deux formats acceptés : CSV, ou classeur LibreOffice Calc (.ods).
+AIDE_FORMAT = _("""
+Two formats accepted: CSV, or LibreOffice Calc spreadsheet (.ods).
 
-Colonnes attendues — date,heure,repas,aliments,douleur
+Expected columns — date,time,meal,foods,pain
 
-  date,heure,repas,aliments,douleur
-  2026-08-31,08:00,petit_dejeuner,oeufs; pain; cafe,2
-  2026-08-31,11:00,,,4              ← relevé de douleur seul
-  2026-08-31,12:30,dejeuner,riz; poulet; legumes,4
-  2026-08-31,19:00,diner,soupe; fromage,
+  date,time,meal,foods,pain
+  2026-08-31,08:00,breakfast,eggs; bread; coffee,2
+  2026-08-31,11:00,,,4              ← pain reading alone
+  2026-08-31,12:30,lunch,rice; chicken; vegetables,4
+  2026-08-31,19:00,dinner,soup; cheese,
 
-Tolérances de saisie :
-  - en-têtes : casse, accents et suffixes ignorés (« Douleur (0-10) » convient) ;
-  - dates    : 2026-08-31, 31/08/2026, 31.08.2026 ;
-  - heures   : 08:00, 8:00, 08:00:00, 08h30 ;
-  - dans un .ods, les cellules date/heure typées par Calc sont relues à leur
-    valeur réelle, pas à leur affichage local.
+Input tolerances:
+  - headers  : case, accents and suffixes ignored ("Pain (0-10)" works too);
+  - dates    : 2026-08-31, 08/31/2026, 08.31.2026;
+  - times    : 08:00, 8:00, 08:00:00, 8:30am;
+  - in an .ods file, date/time cells typed by Calc are read at their
+    actual value, not their local display.
 
-Deux conseils qui pèsent plus que l'algorithme :
+Two tips that matter more than the algorithm:
 
-  1. Relevez la douleur EN DEHORS des repas (colonnes aliments vides), toutes
-     les 3-4 h. Si la douleur n'est notée qu'aux repas, « décalage de 12 h
-     après le petit-déjeuner » et « le soir » sont la même chose : rien ne
-     permet de les distinguer.
+  1. Record pain OUTSIDE of meals (empty foods columns), every
+     3-4 hours. If pain is only noted at meals, "12 h offset
+     after breakfast" and "in the evening" are the same thing: nothing
+     lets you tell them apart.
 
-  2. VARIEZ. Un aliment consommé tous les jours sans exception est
-     indétectable, quel que soit son effet : il n'existe aucun jour de
-     comparaison.
-"""
+  2. VARY your diet. A food eaten every day without exception is
+     undetectable no matter its effect: there is no comparison
+     day available.
+""")
 
 
 def main():
@@ -282,15 +295,15 @@ def main():
         print(__doc__)
         sys.exit(0 if args else 1)
 
-    if args[0] == "--aide-format":
+    if args[0] in ("--aide-format", "--format-help"):
         print(AIDE_FORMAT)
         return
 
-    if args[0] == "--exemple":
-        from simu import ecrire_journal
+    if args[0] in ("--example", "--exemple"):
+        from simu import write_diary
         chemin = args[1] if len(args) > 1 else "journal_exemple.csv"
         n_jours = int(args[2]) if len(args) > 2 else 42
-        verite = ecrire_journal(chemin, n_jours=n_jours)
+        verite = write_diary(chemin, n_jours=n_jours)
         print(f"\n  Journal synthétique écrit dans {chemin} ({n_jours} jours).")
         print("  Coupables réellement injectés (à retrouver) :")
         for nom, (lag, amp) in verite.items():
@@ -323,16 +336,19 @@ def main():
         print("  précision : part des aliments retenus qui sont vraiment coupables\n")
         return
 
-    feuille = args[1] if len(args) > 1 else None
-    observations, repas, avert = charger_journal(args[0], feuille)
+    sheet = args[1] if len(args) > 1 else None
+    observations, repas, avert = load_diary(args[0], sheet)
     if len(observations) < 10 or len(repas) < 5:
-        print(f"\n  Journal trop court : {len(observations)} relevés de douleur, "
-              f"{len(repas)} repas.")
-        print("  Il en faut au moins une dizaine de jours. Voir --aide-format.\n")
+        print(_("\n  Diary too short: %(obs)s pain entries, "
+                "%(meals)s meals.") % {
+                    "obs": len(observations),
+                    "meals": len(repas),
+        })
+        print(_("  You need at least about ten days. See --aide-format.\n"))
         sys.exit(1)
 
     res = analyser(observations, repas, seuil=SEUIL_STABILITE)
-    afficher(res, avert)
+    display(res, avert)
 
 
 if __name__ == "__main__":

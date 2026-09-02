@@ -1,0 +1,379 @@
+date,time,meal,foods,pain
+1/1/26,06:55,,,2
+1/1/26,08:03,breakfast,beurre; cafe; pain,2
+1/1/26,10:01,,,2
+1/1/26,12:42,lunch,ail; huile; lentilles; oignon; pain; piment; poisson; pomme_terre; poulet; tomate,4
+1/1/26,12:44,,,4
+1/1/26,15:48,,,7
+1/1/26,19:29,,,6
+1/1/26,19:38,dinner,legumes; lentilles; vin,5
+1/1/26,22:07,,,3
+1/2/26,07:11,,,2
+1/2/26,07:45,breakfast,cafe; lait; pain; yaourt,4
+1/2/26,10:13,,,4
+1/2/26,12:05,lunch,ail; boeuf; legumes; oignon; pain; pomme_terre; riz; tomate,3
+1/2/26,12:52,,,3
+1/2/26,15:51,,,4
+1/2/26,18:47,dinner,ail; champignon; huile; legumes; oignon; pomme_terre; salade; soupe,3
+1/2/26,18:53,,,5
+1/2/26,21:39,,,4
+1/3/26,07:05,,,3
+1/3/26,08:39,breakfast,beurre; cafe; lait; pain; pomme; yaourt,3
+1/3/26,09:58,,,3
+1/3/26,12:54,lunch,lentilles; salade,4
+1/3/26,13:14,,,3
+1/3/26,16:10,,,5
+1/3/26,19:13,,,4
+1/3/26,19:56,dinner,ail; courgette; lait; legumes; oignon; soupe; vin,3
+1/3/26,21:43,,,1
+1/4/26,06:42,,,1
+1/4/26,08:15,breakfast,cafe; lait,0
+1/4/26,10:28,,,3
+1/4/26,12:37,lunch,beurre; cafe; huile; jus_orange; legumes; poisson; pomme,2
+1/4/26,12:47,,,2
+1/4/26,16:20,,,1
+1/4/26,18:52,,,2
+1/4/26,18:58,dinner,courgette; legumes; pain; pomme_terre; poulet; salade; tomate,3
+1/4/26,22:10,,,3
+1/5/26,06:40,,,1
+1/5/26,07:35,breakfast,beurre; cafe; cereales; confiture; oeufs; pain,2
+1/5/26,09:33,,,3
+1/5/26,13:03,lunch,ail; crevettes; legumes; oignon; salade; tomate,5
+1/5/26,13:18,,,4
+1/5/26,16:08,,,5
+1/5/26,18:46,,,3
+1/5/26,18:51,dinner,legumes; oeufs; pain; yaourt,3
+1/5/26,21:29,,,2
+1/6/26,06:41,,,3
+1/6/26,07:31,breakfast,beurre; cafe; cereales; oeufs; yaourt,3
+1/6/26,09:37,,,5
+1/6/26,11:48,lunch,courgette; huile; pain; poulet,5
+1/6/26,13:19,,,4
+1/6/26,16:11,,,4
+1/6/26,18:43,,,4
+1/6/26,18:47,dinner,chocolat; pain; salade; vin,3
+1/6/26,22:01,,,3
+1/7/26,06:48,,,1
+1/7/26,07:56,breakfast,banane; cafe; jus_orange; pain,1
+1/7/26,09:55,,,2
+1/7/26,12:14,lunch,ail; cafe; crevettes; legumes; lentilles; oignon; pain; salade; yaourt,5
+1/7/26,13:35,,,4
+1/7/26,16:09,,,4
+1/7/26,18:52,,,5
+1/7/26,19:02,dinner,ail; huile; legumes; oignon; pomme_terre; riz; salade; yaourt,5
+1/7/26,22:06,,,2
+1/8/26,07:16,,,3
+1/8/26,08:08,breakfast,banane; confiture; jus_orange; pain,3
+1/8/26,10:19,,,2
+1/8/26,12:21,lunch,boeuf; fromage; pomme; pomme_terre; poulet; salade,3
+1/8/26,13:37,,,4
+1/8/26,15:52,,,5
+1/8/26,18:45,dinner,beurre; boeuf; huile; legumes; piment; poisson; pomme_terre; tomate,5
+1/8/26,19:04,,,6
+1/8/26,21:48,,,6
+1/9/26,06:57,,,1
+1/9/26,07:41,breakfast,cafe; cereales; pain; yaourt,1
+1/9/26,09:58,,,5
+1/9/26,12:40,lunch,huile; lentilles; oeufs; poisson; poulet,6
+1/9/26,12:46,,,4
+1/9/26,16:03,,,4
+1/9/26,18:37,dinner,legumes; piment; riz,6
+1/9/26,19:25,,,6
+1/9/26,21:55,,,5
+1/10/26,07:22,breakfast,beurre; cafe; pain; pomme,1
+1/10/26,07:25,,,3
+1/10/26,09:35,,,3
+1/10/26,12:25,lunch,boeuf; chocolat; huile; oeufs; pain; piment; poisson,4
+1/10/26,12:47,,,5
+1/10/26,15:29,,,9
+1/10/26,18:45,,,6
+1/10/26,18:50,dinner,courgette; lentilles; soupe; vin,6
+1/10/26,22:01,,,3
+1/11/26,07:09,,,1
+1/11/26,07:38,breakfast,beurre; cafe; cereales; chocolat; confiture; lait; pain,0
+1/11/26,10:13,,,2
+1/11/26,11:57,lunch,boeuf; champignon; huile; legumes; poisson; poulet,2
+1/11/26,12:43,,,3
+1/11/26,16:01,,,3
+1/11/26,19:00,,,4
+1/11/26,19:04,dinner,huile; poulet; salade; soupe; tomate,6
+1/11/26,22:10,,,3
+1/12/26,06:56,,,3
+1/12/26,07:58,breakfast,beurre; cafe; jus_orange; lait; oeufs; pain; yaourt,2
+1/12/26,09:39,,,1
+1/12/26,12:35,lunch,boeuf; pain; piment; poisson; riz; vin; yaourt,4
+1/12/26,12:59,,,5
+1/12/26,15:52,,,7
+1/12/26,18:40,dinner,champignon; fromage; legumes; lentilles; tomate; vin,8
+1/12/26,18:55,,,8
+1/12/26,21:37,,,5
+1/13/26,06:44,,,2
+1/13/26,08:39,breakfast,beurre; cafe; lait; oeufs,3
+1/13/26,10:23,,,2
+1/13/26,11:58,lunch,ail; boeuf; chocolat; crevettes; huile; legumes; lentilles; oignon; pates; pomme; poulet,2
+1/13/26,12:57,,,2
+1/13/26,16:22,,,4
+1/13/26,18:58,,,5
+1/13/26,19:27,dinner,ail; oignon; poisson; poulet; riz; tomate,4
+1/13/26,21:49,,,5
+1/14/26,06:24,,,1
+1/14/26,07:51,breakfast,beurre; cafe; confiture,3
+1/14/26,10:16,,,3
+1/14/26,12:56,,,4
+1/14/26,13:11,lunch,cafe; chocolat; fromage; huile; legumes; pain; soupe; tomate,2
+1/14/26,15:26,,,4
+1/14/26,18:30,dinner,huile; pomme_terre; poulet; yaourt,3
+1/14/26,18:41,,,2
+1/14/26,22:14,,,0
+1/15/26,07:19,,,0
+1/15/26,07:57,breakfast,cafe; confiture,2
+1/15/26,10:27,,,1
+1/15/26,12:03,lunch,ail; banane; huile; legumes; oignon; pain; pates; pomme_terre; salade; yaourt,5
+1/15/26,12:39,,,5
+1/15/26,15:40,,,6
+1/15/26,18:35,,,5
+1/15/26,18:53,dinner,fromage; pain; piment; soupe,5
+1/15/26,21:13,,,5
+1/16/26,07:23,,,2
+1/16/26,08:40,breakfast,beurre; cafe; yaourt,1
+1/16/26,10:22,,,3
+1/16/26,11:57,lunch,boeuf; champignon; fromage; huile; legumes; pain; pomme; salade,3
+1/16/26,13:23,,,4
+1/16/26,16:41,,,6
+1/16/26,18:51,,,6
+1/16/26,18:55,dinner,champignon; chocolat; fromage; huile; lait; legumes; vin,6
+1/16/26,22:17,,,5
+1/17/26,06:55,,,0
+1/17/26,07:18,breakfast,cafe; lait; pain; yaourt,3
+1/17/26,10:19,,,4
+1/17/26,11:52,lunch,banane; fromage; huile; legumes; pain; pates; poulet; riz; tomate,5
+1/17/26,12:33,,,7
+1/17/26,16:13,,,7
+1/17/26,18:40,dinner,ail; crevettes; huile; legumes; oignon; pomme_terre; salade; vin; yaourt,7
+1/17/26,18:59,,,5
+1/17/26,22:24,,,4
+1/18/26,07:31,,,0
+1/18/26,08:17,breakfast,beurre; jus_orange; lait; pain; pomme,1
+1/18/26,10:12,,,0
+1/18/26,12:50,,,4
+1/18/26,13:06,lunch,huile; legumes; pain; salade; tomate; yaourt,3
+1/18/26,16:24,,,5
+1/18/26,19:07,dinner,ail; huile; legumes; oignon; poulet; salade; tomate,4
+1/18/26,19:43,,,4
+1/18/26,22:34,,,1
+1/19/26,06:58,,,1
+1/19/26,08:21,breakfast,cafe; cereales; confiture; jus_orange; oeufs; pain,3
+1/19/26,09:54,,,2
+1/19/26,11:53,lunch,ail; boeuf; huile; legumes; oignon; pain; poulet; riz; tomate,4
+1/19/26,13:14,,,3
+1/19/26,15:45,,,3
+1/19/26,19:18,dinner,chocolat; huile; legumes; lentilles; salade; yaourt,6
+1/19/26,19:26,,,5
+1/19/26,21:17,,,5
+1/20/26,06:59,,,3
+1/20/26,08:33,breakfast,banane; beurre; cafe; confiture; lait; pain; yaourt,1
+1/20/26,09:58,,,1
+1/20/26,12:22,lunch,courgette; fromage; huile; lentilles; oeufs; pain; poisson; soupe,3
+1/20/26,13:11,,,4
+1/20/26,15:33,,,5
+1/20/26,18:52,,,4
+1/20/26,18:59,dinner,legumes; poisson; pomme; pomme_terre; poulet; riz; soupe; yaourt,4
+1/20/26,21:51,,,2
+1/21/26,07:20,,,2
+1/21/26,07:55,breakfast,cafe; lait; oeufs; pain; yaourt,0
+1/21/26,10:00,,,2
+1/21/26,12:23,lunch,ail; champignon; fromage; huile; legumes; lentilles; oignon; pates; poulet; salade,4
+1/21/26,12:56,,,5
+1/21/26,16:08,,,6
+1/21/26,18:24,dinner,courgette; crevettes; legumes; pomme; soupe,5
+1/21/26,18:36,,,5
+1/21/26,21:48,,,2
+1/22/26,07:00,,,0
+1/22/26,08:07,breakfast,cafe; cereales; confiture; fromage; jus_orange; oeufs; pain; yaourt,0
+1/22/26,10:03,,,2
+1/22/26,12:18,lunch,ail; champignon; legumes; oignon; pain; pates; poisson,3
+1/22/26,13:17,,,5
+1/22/26,16:02,,,4
+1/22/26,18:29,,,3
+1/22/26,18:47,dinner,boeuf; huile; legumes; piment; poulet,6
+1/22/26,22:26,,,6
+1/23/26,06:51,,,2
+1/23/26,08:04,breakfast,confiture; jus_orange; lait; pomme,4
+1/23/26,09:50,,,5
+1/23/26,12:26,lunch,ail; cafe; huile; legumes; oignon; pain; riz; yaourt,4
+1/23/26,12:54,,,6
+1/23/26,16:09,,,5
+1/23/26,18:38,dinner,ail; legumes; oignon; piment; salade; soupe; vin; yaourt,3
+1/23/26,19:16,,,4
+1/23/26,22:12,,,7
+1/24/26,06:53,,,2
+1/24/26,08:53,breakfast,beurre; cafe; pain,4
+1/24/26,09:46,,,4
+1/24/26,13:17,lunch,ail; beurre; boeuf; huile; legumes; lentilles; oignon; pain; tomate; vin,5
+1/24/26,13:35,,,3
+1/24/26,16:27,,,4
+1/24/26,18:38,dinner,beurre; huile; legumes; poisson; soupe; tomate,6
+1/24/26,19:21,,,7
+1/24/26,22:18,,,5
+1/25/26,06:29,,,1
+1/25/26,07:18,breakfast,cafe; cereales; confiture,1
+1/25/26,10:25,,,2
+1/25/26,12:01,lunch,pomme_terre; yaourt,3
+1/25/26,13:18,,,2
+1/25/26,16:15,,,2
+1/25/26,18:34,dinner,chocolat; huile; salade,3
+1/25/26,19:37,,,4
+1/25/26,22:13,,,3
+1/26/26,06:58,,,2
+1/26/26,07:57,breakfast,beurre; cafe; confiture; jus_orange; pain; pomme,4
+1/26/26,09:38,,,2
+1/26/26,12:20,lunch,ail; champignon; huile; legumes; lentilles; oignon; pain; pates; pomme_terre; poulet; salade,3
+1/26/26,12:46,,,3
+1/26/26,15:32,,,3
+1/26/26,18:07,dinner,champignon; pain; poisson; pomme; pomme_terre; tomate; yaourt,2
+1/26/26,18:55,,,4
+1/26/26,21:32,,,3
+1/27/26,06:59,,,2
+1/27/26,08:26,breakfast,cafe; confiture; lait; pain,4
+1/27/26,10:19,,,2
+1/27/26,11:57,lunch,boeuf; champignon; fromage; legumes,3
+1/27/26,13:15,,,2
+1/27/26,15:50,,,5
+1/27/26,19:07,,,4
+1/27/26,19:07,dinner,ail; legumes; oignon; soupe; vin,4
+1/27/26,22:07,,,4
+1/28/26,07:21,,,3
+1/28/26,07:47,breakfast,banane; cafe; cereales; lait; oeufs; pain,3
+1/28/26,10:36,,,5
+1/28/26,12:33,lunch,fromage; legumes; lentilles; tomate,6
+1/28/26,12:56,,,7
+1/28/26,15:20,,,7
+1/28/26,18:49,dinner,courgette; fromage; huile; legumes; pates; soupe; yaourt,5
+1/28/26,18:53,,,3
+1/28/26,21:20,,,4
+1/29/26,07:11,,,3
+1/29/26,07:51,breakfast,beurre; cafe; confiture; lait; pain,3
+1/29/26,09:41,,,3
+1/29/26,12:23,lunch,pates; pomme; tomate,5
+1/29/26,13:06,,,4
+1/29/26,16:09,,,5
+1/29/26,19:01,dinner,salade,7
+1/29/26,19:25,,,6
+1/29/26,22:07,,,4
+1/30/26,06:46,,,2
+1/30/26,08:36,breakfast,beurre; lait; pain,2
+1/30/26,10:25,,,2
+1/30/26,12:46,lunch,ail; chocolat; huile; legumes; oignon; tomate,3
+1/30/26,13:22,,,3
+1/30/26,15:51,,,4
+1/30/26,18:31,dinner,ail; fromage; lait; oignon; pates; pomme; vin; yaourt,5
+1/30/26,19:16,,,4
+1/30/26,22:03,,,6
+1/31/26,07:14,,,3
+1/31/26,07:47,breakfast,beurre; cafe; cereales; jus_orange; lait; oeufs; pain; yaourt,2
+1/31/26,09:57,,,2
+1/31/26,12:26,lunch,ail; huile; legumes; oignon; pomme; salade,3
+1/31/26,12:45,,,2
+1/31/26,15:37,,,4
+1/31/26,18:45,dinner,ail; chocolat; huile; oignon; riz; soupe,7
+1/31/26,18:46,,,6
+1/31/26,21:56,,,5
+2/1/26,07:05,,,4
+2/1/26,07:46,breakfast,beurre; cafe; pain; pomme,4
+2/1/26,10:26,,,4
+2/1/26,12:47,lunch,ail; fromage; legumes; oignon; pain; pomme_terre; poulet; tomate,5
+2/1/26,13:25,,,4
+2/1/26,16:06,,,6
+2/1/26,19:03,,,5
+2/1/26,19:20,dinner,boeuf; fromage; huile; legumes; poulet,2
+2/1/26,22:04,,,3
+2/2/26,07:28,,,2
+2/2/26,08:33,breakfast,beurre; cafe; pain,1
+2/2/26,09:49,,,3
+2/2/26,12:22,lunch,ail; oignon; pain; pates,5
+2/2/26,12:55,,,5
+2/2/26,15:40,,,4
+2/2/26,18:42,,,5
+2/2/26,19:17,dinner,ail; boeuf; huile; oignon; pain; pates; soupe; vin,5
+2/2/26,22:12,,,6
+2/3/26,07:16,,,2
+2/3/26,07:55,breakfast,banane; beurre; cafe; pain,2
+2/3/26,10:23,,,2
+2/3/26,12:42,lunch,legumes; pain; pates; poisson; pomme_terre; poulet; salade; tomate,3
+2/3/26,13:19,,,4
+2/3/26,16:18,,,2
+2/3/26,18:33,dinner,banane; boeuf; courgette; huile; pomme_terre; tomate; yaourt,2
+2/3/26,19:02,,,3
+2/3/26,21:45,,,2
+2/4/26,06:58,,,2
+2/4/26,08:10,breakfast,banane; confiture; lait,4
+2/4/26,09:47,,,3
+2/4/26,12:41,lunch,champignon; courgette; huile; legumes; pain; pomme_terre; riz; salade,3
+2/4/26,13:07,,,3
+2/4/26,16:12,,,1
+2/4/26,18:34,,,4
+2/4/26,18:51,dinner,champignon; fromage; riz; salade; soupe; tomate,4
+2/4/26,22:06,,,3
+2/5/26,07:13,breakfast,banane; cafe; cereales; lait; pain,2
+2/5/26,07:18,,,3
+2/5/26,09:36,,,3
+2/5/26,12:41,lunch,cafe; crevettes; huile; legumes; pain; yaourt,4
+2/5/26,12:50,,,3
+2/5/26,16:40,,,6
+2/5/26,18:42,dinner,soupe,4
+2/5/26,19:03,,,6
+2/5/26,22:26,,,5
+2/6/26,06:53,,,3
+2/6/26,07:31,breakfast,beurre; cafe; cereales,2
+2/6/26,10:31,,,2
+2/6/26,12:10,lunch,ail; fromage; oignon; pain; pomme; salade; vin,2
+2/6/26,12:35,,,3
+2/6/26,15:46,,,5
+2/6/26,18:25,dinner,chocolat; courgette; pain; pates; poulet; salade,4
+2/6/26,19:21,,,4
+2/6/26,22:07,,,1
+2/7/26,06:42,,,0
+2/7/26,07:14,breakfast,beurre; cafe; cereales; confiture; jus_orange; lait; oeufs; pain,1
+2/7/26,09:45,,,5
+2/7/26,12:37,,,8
+2/7/26,12:50,lunch,huile; legumes; pain; pomme; pomme_terre; riz,8
+2/7/26,16:17,,,7
+2/7/26,19:18,dinner,ail; banane; courgette; oignon; pain; pates; salade; tomate,4
+2/7/26,19:22,,,2
+2/7/26,22:04,,,2
+2/8/26,07:04,,,1
+2/8/26,08:25,breakfast,cafe; confiture; oeufs,1
+2/8/26,09:37,,,3
+2/8/26,13:05,,,3
+2/8/26,13:09,lunch,boeuf; legumes; pates; tomate; yaourt,3
+2/8/26,15:51,,,2
+2/8/26,18:37,,,4
+2/8/26,19:01,dinner,champignon; huile; pates; pomme; pomme_terre; tomate; yaourt,5
+2/8/26,21:59,,,3
+2/9/26,07:10,,,2
+2/9/26,08:20,breakfast,beurre; cafe; cereales; chocolat; pain,2
+2/9/26,10:00,,,3
+2/9/26,11:37,lunch,boeuf; crevettes; huile; legumes; pain; pomme; pomme_terre; poulet; tomate,4
+2/9/26,12:40,,,3
+2/9/26,15:38,,,3
+2/9/26,18:29,dinner,champignon; huile; riz; salade,2
+2/9/26,19:00,,,2
+2/9/26,21:36,,,3
+2/10/26,07:18,,,0
+2/10/26,07:29,breakfast,beurre; cafe,2
+2/10/26,09:54,,,3
+2/10/26,11:55,lunch,boeuf; legumes; oeufs; pates,3
+2/10/26,12:51,,,2
+2/10/26,16:33,,,2
+2/10/26,18:35,,,2
+2/10/26,19:09,dinner,banane; fromage; oeufs; piment; yaourt,5
+2/10/26,22:25,,,5
+2/11/26,06:59,,,2
+2/11/26,07:20,breakfast,cafe; confiture; lait; oeufs; pain,2
+2/11/26,10:21,,,2
+2/11/26,12:12,lunch,boeuf; legumes; poisson; salade,3
+2/11/26,12:55,,,4
+2/11/26,15:40,,,4
+2/11/26,19:07,dinner,ail; chocolat; courgette; legumes; oeufs; oignon; pain; salade,5
+2/11/26,19:19,,,4
+2/11/26,21:52,,,4

@@ -25,6 +25,7 @@ import re
 import unicodedata
 import zipfile
 from xml.etree import ElementTree
+from i18n import _, n_
 
 NS = {
     "table": "urn:oasis:names:tc:opendocument:xmlns:table:1.0",
@@ -79,9 +80,9 @@ def _repetitions(element, attribut, defaut=1):
         return defaut
 
 
-def lire_feuille(chemin, feuille=None):
+def lire_feuille(path, feuille=None):
     """→ liste de lignes, chaque ligne étant une liste de chaînes."""
-    with zipfile.ZipFile(chemin) as z:
+    with zipfile.ZipFile(path) as z:
         racine = ElementTree.fromstring(z.read("content.xml"))
 
     tables = racine.findall(".//table:table", NS)
@@ -115,35 +116,51 @@ def lire_feuille(chemin, feuille=None):
     return lignes
 
 
-def normaliser_entete(nom):
-    """« Douleur (0-10) » → « douleur » : casse, accents et suffixes ignorés."""
+def normalize_header(nom):
+    """ Normalize a header name by stripping whitespace, converting to lowercase, removing accents, and ignoring suffixes in parentheses. Spaces are replaced with underscores.
+
+    Args:
+        nom (str): The header name to normalize.
+
+    Returns:
+        str: The normalized header name.
+    """
     nom = unicodedata.normalize("NFKD", nom.strip().lower())
     nom = "".join(c for c in nom if not unicodedata.combining(c))
     return nom.split("(")[0].strip().replace(" ", "_")
 
 
-def read_ods(chemin, feuille=None):
+def read_ods(path, sheet=None):
     """
     Read an ODS file and return a list of dictionaries, similar to csv.DictReader (first line = headers).
 
     Args:
-        chemin (str): Path to the ODS file.
-        feuille (str, optional): Name of the sheet to read. Defaults to None (first sheet).
+        path (str): Path to the ODS file.
+        sheet (str, optional): Name of the sheet to read. Defaults to None (first sheet).
 
     Returns:
         list: A list of dictionaries representing the rows in the sheet, with normalized headers as keys.
     """
-    lignes = lire_feuille(chemin, feuille)
-    if not lignes:
+    lines = lire_feuille(path, sheet)
+    if not lines:
         return []
-    entetes = [normaliser_entete(c) for c in lignes[0]]
-    sortie = []
-    for ligne in lignes[1:]:
-        if not any(c.strip() for c in ligne):
+    headers = [normalize_header(c) for c in lines[0]]
+
+    replacements = {
+        _("time"): "time",
+        _("foods"): "foods",
+        _("meal"): "meal",
+        _("pain"): "pain",
+    }
+
+    headers = [replacements.get(x, x) for x in headers]
+    retval = []
+    for line in lines[1:]:
+        if not any(c.strip() for c in line):
             continue
-        ligne = ligne + [""] * (len(entetes) - len(ligne))
-        sortie.append(dict(zip(entetes, ligne)))
-    return sortie
+        line = line + [""] * (len(headers) - len(line))
+        retval.append(dict(zip(headers, line)))
+    return retval
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -237,7 +254,7 @@ def _cellule(valeur):
     return f'<table:table-cell office:value-type="string"><text:p>{_echapper(t)}</text:p></table:table-cell>'
 
 
-def ecrire_ods(chemin, lignes, feuille="journal"):
+def ecrire_ods(path, lignes, feuille="journal"):
     """Écrit un classeur .ods minimal mais valide, ouvrable dans Calc."""
     corps = [ENTETE_CONTENU.format(feuille=_echapper(feuille),
                                    STYLE_DATE=STYLE_DATE,
@@ -248,11 +265,11 @@ def ecrire_ods(chemin, lignes, feuille="journal"):
                      + "</table:table-row>")
     corps.append(PIED_CONTENU)
 
-    with zipfile.ZipFile(chemin, "w", zipfile.ZIP_DEFLATED) as z:
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as z:
         # le mimetype doit être la première entrée, non compressée
         z.writestr(zipfile.ZipInfo("mimetype"), MIMETYPE,
                    compress_type=zipfile.ZIP_STORED)
         z.writestr("META-INF/manifest.xml", MANIFEST.format(mime=MIMETYPE))
         z.writestr("styles.xml", STYLES)
         z.writestr("content.xml", "".join(corps))
-    return chemin
+    return path

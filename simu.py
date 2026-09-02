@@ -14,10 +14,12 @@ Le générateur reproduit exprès les pièges du problème réel :
 """
 
 import numpy as np
+from babel.dates import format_date
 
-from modele import analyser, normaliser
+from modele import analyser, normalize
+from i18n import _, n_
 
-MOMENTS = [(8.0, "petit_dejeuner"), (12.5, "dejeuner"), (19.0, "diner")]
+MOMENTS = [(8.0, _("breakfast")), (12.5, _("lunch")), (19.0, _("dinner"))]
 
 CATALOGUE = [
     # (nom, proba au p-dej, proba au dej, proba au diner)
@@ -73,7 +75,7 @@ def generer(n_jours=28, coupables=None, graine=0, bruit=1.0,
                     choisis = sorted(set(choisis) | {a, b})
             if not choisis:
                 choisis = ["pain"]
-            repas.append((t, sorted(normaliser(c) for c in choisis)))
+            repas.append((t, sorted(normalize(c) for c in choisis)))
     repas.sort(key=lambda r: r[0])
 
     # -- instants de relevé de la douleur ------------------------------
@@ -90,7 +92,7 @@ def generer(n_jours=28, coupables=None, graine=0, bruit=1.0,
     signal += amplitude_circadienne * np.sin(2 * np.pi * (heures - 10) / 24)
 
     for nom, (lag, amp) in effets.items():
-        n = normaliser(nom)
+        n = normalize(nom)
         for t_r, alims in repas:
             if n in alims:
                 signal += amp * reponse(t_obs - t_r, lag)
@@ -101,7 +103,7 @@ def generer(n_jours=28, coupables=None, graine=0, bruit=1.0,
     y = np.clip(np.round(signal + e), 0, 10)
 
     observations = [(t_obs[i], heures[i], float(y[i])) for i in range(len(t_obs))]
-    verite = {normaliser(n): (lag, amp) for n, lag, amp in coupables}
+    verite = {normalize(n): (lag, amp) for n, lag, amp in coupables}
     return observations, repas, verite
 
 
@@ -207,7 +209,7 @@ if __name__ == "__main__":
         print("   faux positifs :", r["faux_positifs"])
 
 
-def ecrire_journal(chemin, n_jours=42, graine=0,
+def write_diary(chemin, n_jours=42, graine=0,
                    heures_releve=(7, 10, 13, 16, 19, 22)):
     """Écrit un journal synthétique. Le format suit l'extension : .ods pour un
     classeur LibreOffice Calc, CSV sinon."""
@@ -217,7 +219,7 @@ def ecrire_journal(chemin, n_jours=42, graine=0,
                                  heures_releve=list(heures_releve))
     depart = datetime(2026, 1, 1)
     par_instant = {round(t, 4): a for t, a in repas}
-    noms = {8.0: "petit_dejeuner", 12.5: "dejeuner", 19.0: "diner"}
+    noms = {8.0: _("breakfast"), 12.5: _("lunch"), 19.0: _("dinner")}
 
     lignes = []
     for t, _h, d in obs:
@@ -228,8 +230,8 @@ def ecrire_journal(chemin, n_jours=42, graine=0,
                        "; ".join(alims), int(d)))
     lignes.sort(key=lambda x: x[0])
 
-    table = [["date", "heure", "repas", "aliments", "douleur"]]
-    table += [[ts.strftime("%Y-%m-%d"), ts.strftime("%H:%M"), moment, alims, d]
+    table = [[_("date"), _("time"), _("meal"), _("foods"), _("pain")]]
+    table += [[format_date(ts, format='short'), ts.strftime("%H:%M"), moment, alims, d]
               for ts, moment, alims, d in lignes]
 
     if chemin.lower().endswith(".ods"):
@@ -242,4 +244,4 @@ def ecrire_journal(chemin, n_jours=42, graine=0,
     return verite
 
 
-ecrire_csv = ecrire_journal          # rétrocompatibilité
+ecrire_csv = write_diary          # rétrocompatibilité

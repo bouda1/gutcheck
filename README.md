@@ -17,6 +17,12 @@ uv venv gutcheck
 uv pip install scipy
 ```
 
+To update translations, you may have to run:
+
+```bash
+./update_translations.sh
+```
+
 # gutcheck — detecting foods that trigger pain
 
 Three constraints define the problem and drive every design decision in the
