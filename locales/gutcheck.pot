@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-02 23:33+0200\n"
+"POT-Creation-Date: 2026-09-04 00:05+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,103 +17,103 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: gutcheck.py:34 simu.py:233
+#: gutcheck.py:50 simu.py:249
 msgid "date"
 msgstr ""
 
-#: gutcheck.py:34 gutcheck.py:57 simu.py:233 spreadsheet.py:150
+#: gutcheck.py:50 gutcheck.py:73 simu.py:249 spreadsheet.py:166
 msgid "time"
 msgstr ""
 
-#: gutcheck.py:34 gutcheck.py:59 simu.py:233 spreadsheet.py:152
+#: gutcheck.py:50 gutcheck.py:75 simu.py:249 spreadsheet.py:168
 msgid "meal"
 msgstr ""
 
-#: gutcheck.py:34 gutcheck.py:58 simu.py:233 spreadsheet.py:151
+#: gutcheck.py:50 gutcheck.py:74 simu.py:249 spreadsheet.py:167
 msgid "foods"
 msgstr ""
 
-#: gutcheck.py:34 gutcheck.py:60 simu.py:233 spreadsheet.py:153
+#: gutcheck.py:50 gutcheck.py:76 simu.py:249 spreadsheet.py:169
 msgid "pain"
 msgstr ""
 
-#: gutcheck.py:90
+#: gutcheck.py:106
 #, python-format
 msgid "missing column(s): %(missing)s  — expected: %(await)s"
 msgstr ""
 
-#: gutcheck.py:176
+#: gutcheck.py:192
 msgid ""
 "\n"
 "  Warning:"
 msgstr ""
 
-#: gutcheck.py:185
+#: gutcheck.py:201
 #, python-format
 msgid ""
 "  %(days)s days · %(obs)s pain entries · %(nb)s foods analyzed "
 "(autocorrelation removed: rho = %(rho).2f)"
 msgstr ""
 
-#: gutcheck.py:199
+#: gutcheck.py:215
 msgid "Food"
 msgstr ""
 
-#: gutcheck.py:199
+#: gutcheck.py:215
 msgid "Stability"
 msgstr ""
 
-#: gutcheck.py:199
+#: gutcheck.py:215
 msgid "Lag"
 msgstr ""
 
-#: gutcheck.py:200
+#: gutcheck.py:216
 msgid "Peak"
 msgstr ""
 
-#: gutcheck.py:200
+#: gutcheck.py:216
 msgid "Effect"
 msgstr ""
 
-#: gutcheck.py:200
+#: gutcheck.py:216
 msgid "n meals"
 msgstr ""
 
-#: gutcheck.py:243
+#: gutcheck.py:259
 msgid "  Next step — observation alone doesn't prove causality."
 msgstr ""
 
-#: gutcheck.py:244
+#: gutcheck.py:260
 #, python-format
 msgid "  Remove %(aliment)s for 2 weeks while keeping the journal,"
 msgstr ""
 
-#: gutcheck.py:247
+#: gutcheck.py:263
 msgid "  then reintroduce it. One food at a time."
 msgstr ""
 
-#: gutcheck.py:249
+#: gutcheck.py:265
 #, python-format
 msgid "  Next candidates: %(liste)s."
 msgstr ""
 
-#: gutcheck.py:253
+#: gutcheck.py:269
 msgid "  No food stands out consistently."
 msgstr ""
 
-#: gutcheck.py:254
+#: gutcheck.py:270
 msgid "  Possible causes: journal too short, effect genuinely weak, or"
 msgstr ""
 
-#: gutcheck.py:255
+#: gutcheck.py:271
 msgid "  food eaten almost every day (no \"without\" days"
 msgstr ""
 
-#: gutcheck.py:256
+#: gutcheck.py:272
 msgid "  to compare against). Extend the journal or vary your diet."
 msgstr ""
 
-#: gutcheck.py:260
+#: gutcheck.py:276
 msgid ""
 "\n"
 "Two formats accepted: CSV, or LibreOffice Calc spreadsheet (.ods).\n"
@@ -146,57 +146,61 @@ msgid ""
 "     day available.\n"
 msgstr ""
 
-#: gutcheck.py:342
+#: gutcheck.py:358
 #, python-format
 msgid ""
 "\n"
 "  Diary too short: %(obs)s pain entries, %(meals)s meals."
 msgstr ""
 
-#: gutcheck.py:347
+#: gutcheck.py:363
 msgid "  You need at least about ten days. See --aide-format.\n"
 msgstr ""
 
-#: simu.py:21 simu.py:222
+#: simu.py:37 simu.py:238
 msgid "breakfast"
 msgstr ""
 
-#: simu.py:21 simu.py:222
+#: simu.py:37 simu.py:238
 msgid "lunch"
 msgstr ""
 
-#: simu.py:21 simu.py:222
+#: simu.py:37 simu.py:238
 msgid "dinner"
 msgstr ""
 
-#: test_gutcheck.py:105
+#: test_gutcheck.py:121 test_gutcheck_pytest.py:158
 msgid "Date"
 msgstr ""
 
-#: test_gutcheck.py:106 test_gutcheck.py:137
+#: test_gutcheck.py:122 test_gutcheck.py:153 test_gutcheck_pytest.py:159
+#: test_gutcheck_pytest.py:186
 msgid "Time"
 msgstr ""
 
-#: test_gutcheck.py:107 test_gutcheck.py:137
+#: test_gutcheck.py:123 test_gutcheck.py:153 test_gutcheck_pytest.py:160
+#: test_gutcheck_pytest.py:186
 msgid "Meal"
 msgstr ""
 
-#: test_gutcheck.py:108 test_gutcheck.py:137
+#: test_gutcheck.py:124 test_gutcheck.py:153 test_gutcheck_pytest.py:161
+#: test_gutcheck_pytest.py:186
 msgid "Foods"
 msgstr ""
 
-#: test_gutcheck.py:109 test_gutcheck.py:137
+#: test_gutcheck.py:125 test_gutcheck.py:153 test_gutcheck_pytest.py:162
+#: test_gutcheck_pytest.py:186
 msgid "Pain (0-10)"
 msgstr ""
 
-#: model.py:457
+#: model.py:689
 msgid "no food reaches the minimum number of occurrences"
 msgstr ""
 
-#: model.py:496
+#: model.py:728
 msgid "no food varies enough to be tested (diet too regular)"
 msgstr ""
 
-#: model.py:559
+#: model.py:791
 msgid "log too short for resampling"
 msgstr ""

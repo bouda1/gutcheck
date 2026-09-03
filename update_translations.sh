@@ -1,5 +1,5 @@
 #!/bin/bash
-xgettext -d gutcheck -o locales/gutcheck.pot --language=Python gutcheck.py simu.py spreadsheet.py test_gutcheck.py model.py
+xgettext -d gutcheck -o locales/gutcheck.pot --language=Python gutcheck.py simu.py spreadsheet.py test_gutcheck.py model.py test_gutcheck_pytest.py
 for lang in fr en; do
   po=locales/$lang/LC_MESSAGES/gutcheck.po
   if [ -f "$po" ]; then

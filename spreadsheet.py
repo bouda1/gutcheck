@@ -270,7 +270,7 @@ def _cellule(valeur):
     return f'<table:table-cell office:value-type="string"><text:p>{_echapper(t)}</text:p></table:table-cell>'
 
 
-def ecrire_ods(path, lignes, feuille="journal"):
+def write_ods(path, lignes, feuille="journal"):
     """Écrit un classeur .ods minimal mais valide, ouvrable dans Calc."""
     corps = [ENTETE_CONTENU.format(feuille=_echapper(feuille),
                                    STYLE_DATE=STYLE_DATE,

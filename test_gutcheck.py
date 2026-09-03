@@ -34,7 +34,7 @@ from model import (
     analyze,
     build_controls,
     build_exposition,
-    fusionner_indissociables,
+    fuse_inseparable,
     nn_group_lasso,
     normalize,
     kernels_weights,
@@ -105,7 +105,7 @@ check((b >= 0).all(), "contrainte de positivité respectée")
 
 print("\nfusion des aliments indissociables")
 repas = [(float(i), ["ail", "oignon"] + (["riz"] if i % 2 else [])) for i in range(10)]
-blocs, membres = fusionner_indissociables(repas, ["ail", "oignon", "riz"])
+blocs, membres = fuse_inseparable(repas, ["ail", "oignon", "riz"])
 check("ail+oignon" in blocs, "aliments toujours ensemble fusionnés")
 check("riz" in blocs, "aliment indépendant non fusionné")
 
@@ -142,14 +142,14 @@ check(any("pas-une-date" in a for a in avert), "date illisible signalée")
 check(["cafe", "pain"] == rep[0][1], f"noms normalisés (obtenu {rep[0][1]})")
 
 print("\nclasseur LibreOffice Calc (.ods)")
-from spreadsheet import ecrire_ods, lire_feuille, normalize_header, read_ods
+from spreadsheet import write_ods, lire_feuille, normalize_header, read_ods
 
 check(normalize_header("  Douleur (0-10) ") == "douleur",
          "en-tête décoré normalisé")
 check(normalize_header("Aliments") == "aliments", "en-tête casse ignorée")
 
 chemin_ods = os.path.join(tempfile.gettempdir(), "alim_test.ods")
-ecrire_ods(chemin_ods, [
+write_ods(chemin_ods, [
     ["Date", _("Time"), _("Meal"), _("Foods"), _("Pain (0-10)")],
     ["2026-03-01", "08:00", "petit_dejeuner", "Café; pain", 2],
     ["2026-03-01", "11:00", "", "", 4],

@@ -251,8 +251,8 @@ def write_diary(chemin, n_jours=42, graine=0,
               for ts, moment, alims, d in lignes]
 
     if chemin.lower().endswith(".ods"):
-        from spreadsheet import ecrire_ods
-        ecrire_ods(chemin, table, feuille="journal")
+        from spreadsheet import write_ods
+        write_ods(chemin, table, feuille="journal")
     else:
         import csv as _csv
         with open(chemin, "w", encoding="utf-8", newline="") as f:

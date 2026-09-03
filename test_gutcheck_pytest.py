@@ -15,8 +15,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import os
 import numpy as np
+import tempfile
 
+from i18n import _
+from gutcheck import load_diary
 from model import (
     MAX_SPAN,
     MIN_DELAY,
@@ -28,7 +32,9 @@ from model import (
     build_controls,
     nn_group_lasso,
     prepare_groups,
+    fuse_inseparable,
 )
+from spreadsheet import write_ods, lire_feuille, normalize_header, read_ods
 
 
 def test_normalize():
@@ -108,18 +114,88 @@ def test_residualize():
                        2.0, 0, 0, 0, 0], atol=0.1), "y_res should be explained by X_res with the true coefficients"
 
 def test_group_lasso():
-    n, G_blocs = 200, 6
+    # We simulate a linear regression problem with 200 observations and 6 groups of features.
+    n, G_blocks = 200, 6
     rng = np.random.default_rng(0)
     K = len(LAG_CENTERS)
-    Xg = rng.normal(size=(n, G_blocs * K))
-    beta_vrai = np.zeros(G_blocs * K)
-    beta_vrai[K:2 * K] = 1.5          # seul le groupe 1 est actif
-    yg = Xg @ beta_vrai + rng.normal(0, 0.5, n)
-    groups = [np.arange(b * K, (b + 1) * K) for b in range(G_blocs)]
+    # We build a design matrix Xg with n rows and G_blocks * K columns,
+    # where each group of K columns corresponds to a different feature group.
+    Xg = rng.normal(size=(n, G_blocks * K))
+    # We plant a true coefficient vector beta_true, where only the second group
+    # (group 1) has non-zero coefficients.
+    beta_true = np.zeros(G_blocks * K)
+    beta_true[K:2 * K] = 1.5          # Only the group 1 is active
+    # We generate a response variable yg as a linear combination of Xg and beta_true,
+    # plus some noise.
+    yg = Xg @ beta_true + rng.normal(0, 0.5, n)
+    # We define the groups of features for the group lasso, where each group
+    # consists of K consecutive columns.
+    groups = [np.arange(b * K, (b + 1) * K) for b in range(G_blocks)]
+    # We compute the Gram matrix Gm and the vector cm for the group lasso problem.
     Gm, cm = Xg.T @ Xg / n, Xg.T @ yg / n
-    b = nn_group_lasso(Gm, cm, groups, 0.15, np.full(G_blocs, np.sqrt(K)),
+    b = nn_group_lasso(Gm, cm, groups, 0.15, np.full(G_blocks, np.sqrt(K)),
                        prepare_groups(Gm, groups))
-    actifs = [g for g in range(G_blocs) if b[groups[g]].max() > 0]
-    assert actifs == [1], f"seul le groupe planté est sélectionné (obtenu {actifs})"
-    assert (b >= 0).all(), "contrainte de positivité respectée"
+    active = [g for g in range(G_blocks) if b[groups[g]].max() > 0]
+    assert active == [1], f"only the planted group should be selected (got {active})"
+    assert (b >= 0).all(), "we should have non negative coefficients"
+
+def test_fusion():
+    meal = [(float(i), ["ail", "oignon"] + (["riz"] if i % 2 else [])) for i in range(10)]
+    blocks, _members = fuse_inseparable(meal, ["ail", "oignon", "riz"])
+    assert "ail+oignon" in blocks, "foods that are always consumed together should be fused"
+    assert "riz" in blocks, "independent foods should not be fused"
+
+def test_read_csv():
+    content = """{date},{heure},{repas},{aliments},{douleur}
+2026-03-02,19:00,diner,soupe,5
+2026-03-01,,petit_dejeuner,Café; pain,2
+2026-03-01,12:30,dejeuner,riz,
+2026-03-01,15:00,,,4
+2026-03-01,16:00,,,abc
+pas-une-date,08:00,,,3
+""".format(
+           date=_("Date"),
+           heure=_("Time"),
+           repas=_("Meal"),
+           aliments=_("Foods"),
+           douleur=_("Pain (0-10)"),
+       )
+
+    with tempfile.NamedTemporaryFile("w", suffix=".csv", delete=False,
+                                     encoding="utf-8") as f:
+        f.write(content)
+        path = f.name
+    obs, rep, avert = load_diary(path)
+    os.unlink(path)
+    assert [o[0] for o in obs] == sorted(o[0] for o in obs), "observation times should be sorted"
+    assert len(rep) == 3, f"3 meals read (got {len(rep)})"
+    assert len(obs) == 3, f"3 pain observations read (got {len(obs)})"
+    assert any("sans heure" in a for a in avert), "empty time should be reported"
+    assert abs((rep[1][0] - rep[0][0]) - 0.5) < 1e-9, "empty time should be translated into 12:00 (30 min before the lunch at 12:30)"
+    assert any("abc" in a for a in avert), "unreadable pain value should be reported"
+    assert any("pas-une-date" in a for a in avert), "unreadable date should be reported"
+    assert ["cafe", "pain"] == rep[0][1], f"first meal foods should be normalized (got {rep[0][1]})"
+
+def test_spreadsheet():
+    assert normalize_header("  Douleur (0-10) ") == "douleur", "en-tête décoré normalisé"
+    assert normalize_header("Aliments") == "aliments", "en-tête casse ignorée"
+
+    chemin_ods = os.path.join(tempfile.gettempdir(), "alim_test.ods")
+    write_ods(chemin_ods, [
+        ["Date", _("Time"), _("Meal"), _("Foods"), _("Pain (0-10)")],
+        ["2026-03-01", "08:00", "petit_dejeuner", "Café; pain", 2],
+        ["2026-03-01", "11:00", "", "", 4],
+        ["2026-03-01", "12:30", "dejeuner", "riz; poulet", ""],
+        ["2026-03-02", "19:00", "diner", "soupe", 5],
+    ])
+    d = read_ods(chemin_ods)
+    assert len(d) == 4, f"4 lignes de données lues (obtenu {len(d)})"
+    assert d[0]["date"] == "2026-03-01", "cellule DATE typée relue en ISO (pas le texte affiché)"
+    assert d[0]["time"] == "08:00", f"cellule HEURE typée relue en HH:MM (obtenu {d[0]['time']!r})"
+    assert d[0]["pain"] == "2", "cellule numérique sans décimale parasite"
+    assert d[2]["pain"] == "", "cellule vide en fin de ligne = chaîne vide"
+
+    obs_o, rep_o, _dumb = load_diary(chemin_ods)
+    assert len(rep_o) == 3 and len(obs_o) == 3, "journal .ods chargé comme son équivalent CSV"
+    assert rep_o[0][1] == ["cafe", "pain"], "noms normalisés depuis le classeur"
 

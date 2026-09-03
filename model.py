@@ -617,7 +617,7 @@ def grille_lambda_ortho(G, c, groupes, poids, q_max, n_lam=N_LAMBDAS):
 #  Aliments indissociables
 # ══════════════════════════════════════════════════════════════════
 
-def fusionner_indissociables(repas, aliments, seuil=SEUIL_JACCARD):
+def fuse_inseparable(repas, aliments, seuil=SEUIL_JACCARD):
     """
     Deux aliments presque toujours consommés ensemble ne sont pas séparables
     par des données d'observation : on les fusionne en un bloc explicite plutôt
@@ -689,8 +689,8 @@ def analyze(observations, repas, min_occurrences=MIN_OCCURRENCES,
         return {"error": _("no food reaches the minimum number of occurrences"),
                 "compte": dict(compte)}
 
-    blocs, membres = fusionner_indissociables(repas, frequents)
-    vers_bloc = {a: b for b, ms in membres.items() for a in ms}
+    blocs, members = fuse_inseparable(repas, frequents)
+    vers_bloc = {a: b for b, ms in members.items() for a in ms}
     repas_blocs = [(t, sorted({vers_bloc[a] for a in alims if a in vers_bloc}))
                    for t, alims in repas]
 
