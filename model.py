@@ -166,22 +166,160 @@ def build_exposition(t_obs, meal, foods):
     return X
 
 
-def construire_controles(t_obs, heure_du_jour):
+import subprocess
+import tempfile
+import os
+
+def plot_exposition_gnuplot(X, t_obs, foods, K, lag_centers,
+                             columns=None, outfile=None, title=None,
+                             xlabel="Temps (h)", ylabel="Dose cumulée",
+                             terminal="qt"):
     """
-    Facteurs de confusion retirés sans pénalité :
-      - constante
-      - rythme circadien (harmoniques 24 h et 12 h) : sinon un aliment du
-        petit-déjeuner hérite du décalage qui tombe sur le pic du soir ;
-      - dérive linéaire sur la durée du journal.
+    Trace une ou plusieurs colonnes de la matrice retournée par
+    build_exposition, avec gnuplot.
+
+    Args:
+        X: (n, F*K) matrice de design (sortie de build_exposition).
+        t_obs: (n,) temps des observations (axe des abscisses).
+        foods: liste ordonnée des aliments (même ordre que build_exposition).
+        K: nombre de noyaux de lag (len(LAG_CENTERS)).
+        lag_centers: centres des noyaux (LAG_CENTERS), pour légender.
+        columns: liste des séries à tracer. Chaque élément peut être :
+            - un int : index de colonne direct dans X
+            - (aliment, k) : aliment + index de noyau (0 <= k < K)
+            - (aliment, None) : somme sur tous les noyaux pour cet aliment
+              (exposition totale, tous lags confondus)
+            Si None : trace le total (tous lags) de chaque aliment de `foods`.
+        outfile: chemin d'image (.png/.svg/.pdf) ; si None, fenêtre interactive.
+        title, xlabel, ylabel: habillage du graphe.
+        terminal: terminal gnuplot interactif (qt, wxt, x11...).
+
+    Returns:
+        Le chemin du fichier produit (si outfile fourni) ou None.
+    """
+    t_obs = np.asarray(t_obs, dtype=float)
+    idx = {a: i for i, a in enumerate(foods)}
+
+    if columns is None:
+        columns = [(a, None) for a in foods]
+
+    series = []  # (label, values (n,))
+    for item in columns:
+        if isinstance(item, int):
+            values = X[:, item]
+            label = f"col{item}"
+        else:
+            aliment, k = item
+            if aliment not in idx:
+                raise ValueError(f"Aliment inconnu: {aliment}")
+            base = idx[aliment] * K
+            if k is None:
+                values = X[:, base:base + K].sum(axis=1)
+                label = f"{aliment} (total)"
+            else:
+                if not (0 <= k < K):
+                    raise ValueError(f"Index de noyau invalide: {k}")
+                values = X[:, base + k]
+                lag_lbl = lag_centers[k] if lag_centers is not None else k
+                label = f"{aliment} (lag={lag_lbl})"
+        series.append((label, values))
+
+    # Tri par temps pour un tracé propre
+    order = np.argsort(t_obs)
+    t_sorted = t_obs[order]
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".dat", delete=False) as f:
+        data_path = f.name
+        f.write("# t\t" + "\t".join(f'"{lbl}"' for lbl, _ in series) + "\n")
+        for row_i, ti in zip(order, t_sorted):
+            vals = "\t".join(f"{v[row_i]:.6g}" for _, v in series)
+            f.write(f"{ti:.6g}\t{vals}\n")
+
+    plot_terms = [
+        f'"{data_path}" using 1:{i + 2} with lines lw 2 title "{label}"'
+        for i, (label, _) in enumerate(series)
+    ]
+
+    script_lines = [
+        f'set xlabel "{xlabel}"',
+        f'set ylabel "{ylabel}"',
+        "set grid",
+        "set key outside right",
+    ]
+    if title:
+        script_lines.append(f'set title "{title}"')
+
+    if outfile:
+        ext = os.path.splitext(outfile)[1].lstrip(".").lower()
+        gp_term = {"png": "pngcairo", "svg": "svg", "pdf": "pdfcairo"}.get(ext, "pngcairo")
+        script_lines.append(f"set terminal {gp_term} size 1000,600")
+        script_lines.append(f'set output "{outfile}"')
+    else:
+        script_lines.append(f"set terminal {terminal} persist")
+
+    script_lines.append("plot " + ", \\\n     ".join(plot_terms))
+    script = "\n".join(script_lines) + "\n"
+
+    subprocess.run(["gnuplot"], input=script, text=True, check=True)
+
+    if outfile:
+        os.remove(data_path)
+        return outfile
+    return None
+
+def build_controls(t_obs, time_of_day):
+    """Build the unpenalized confounder matrix Z (24h and 12h circadian
+    harmonics, an intercept, and a linear time drift).
+
+    Meant to be used as the control block Z in FWL-style residualization
+    (see `residualize`) before fitting a regularized model on the food
+    exposure columns: these confounders are absorbed via plain least
+    squares, unpenalized, rather than shrunk by Lasso alongside the food
+    coefficients.
+
+    Included confounders:
+      - intercept: overall baseline level.
+      - circadian rhythm (24h and 12h harmonics): without this, a food
+        eaten every morning could pick up variance from the evening
+        pain peak, since its exposure curve would itself vary with
+        time of day. The 24h harmonic (sin/cos at 1 cycle/day) can
+        represent any single daily peak; the 12h harmonic (sin/cos at
+        2 cycles/day) additionally captures a twice-daily pattern
+        (e.g. morning and evening peaks) that the 24h term alone
+        cannot represent.
+      - linear drift over the diary's duration: captures slow trends
+        in the outcome unrelated to diet (e.g. gradual improvement or
+        worsening over the tracked period).
+
+    Note: if a given food is eaten at a very regular time of day, its
+    exposure column may be substantially correlated with these
+    circadian harmonics, and residualizing against Z can attenuate
+    part of that food's true effect. This is an unavoidable
+    identifiability trade-off, not a bug: without these controls, the
+    model risks the opposite error of attributing circadian noise to
+    diet.
+
+    Args:
+        t_obs: (n,) array-like of observation times since the start of
+            the diary, in hours.
+        time_of_day: (n,) array-like of the time of day for each
+            observation, in hours (0-24).
+
+    Returns:
+        (n, 6) ndarray Z, with columns:
+          0: intercept (all ones)
+          1-2: sin/cos of the 24h circadian harmonic
+          3-4: sin/cos of the 12h circadian harmonic
+          5: linear drift (t_obs centered and scaled to days)
     """
     t = np.asarray(t_obs, dtype=float)
-    h = np.asarray(heure_du_jour, dtype=float)
-    jours = (t - t.mean()) / 24.0
+    h = np.asarray(time_of_day, dtype=float)
+    days = (t - t.mean()) / 24.0
     return np.column_stack([
         np.ones_like(t),
         np.sin(2 * np.pi * h / 24), np.cos(2 * np.pi * h / 24),
         np.sin(4 * np.pi * h / 24), np.cos(4 * np.pi * h / 24),
-        jours,
+        days,
     ])
 
 
@@ -207,11 +345,39 @@ def blanchir_ar1(y, X, Z, t_obs):
     return tr(y), tr(X), tr(Z), rho
 
 
-def residualiser(y, X, Z):
-    """Frisch-Waugh-Lovell : retire l'espace de Z de y et de X.
-    Exact pour le problème pénalisé, les colonnes de Z n'étant pas pénalisées."""
-    coef, *_ = np.linalg.lstsq(Z, np.column_stack([y, X]), rcond=None)
-    res = np.column_stack([y, X]) - Z @ coef
+def residualize(y, X, Z):
+    """Residualize y and X with respect to Z (Frisch-Waugh-Lovell theorem).
+
+    Projects y and each column of X orthogonally onto span(Z), and
+    returns the residuals — i.e. y and X with the component explained
+    by Z removed. By construction, y_res and every column of X_res are
+    orthogonal to span(Z).
+
+    By the Frisch-Waugh-Lovell theorem, the coefficients obtained by
+    regressing y_res on X_res are exactly the coefficients on X in the
+    full regression of y on [X, Z] — the coefficients on Z are not
+    recovered by this function.
+
+    Args:
+        y: (n,) array-like of the response variable.
+        X: (n, p) array-like of predictor variables to residualize
+            (i.e. partial out Z from).
+        Z: (n, q) array-like of control variables to partial out.
+            Does not need to be full column rank; the projection onto
+            span(Z) is still well-defined via least squares.
+
+    Returns:
+        y_res: (n,) ndarray, residuals of y after projecting onto
+            span(Z).
+        X_res: (n, p) ndarray, residuals of X (column-wise) after
+            projecting onto span(Z).
+    """
+
+    # Stack y and X so both are projected in a single lstsq call.
+    S = np.column_stack([y, X])
+    coef, *_ = np.linalg.lstsq(Z, S, rcond=None)
+    # Residual = original − fitted (i.e. original − its projection onto span(Z)).
+    res = S - Z @ coef
     return res[:, 0], res[:, 1:]
 
 
@@ -236,7 +402,7 @@ def _prox_groupe(v, seuil):
     return v * max(0.0, 1.0 - seuil / n) if n > 0 else v
 
 
-def _resoudre_groupe(Gg, u, lam_g, b0, pas, n_iter=80, tol=1e-9):
+def _solve_group(Gg, u, lam_g, b0, pas, n_iter=80, tol=1e-9):
     """min_{b>=0} 1/2 b'Gg b - u'b + lam_g||b||_2, par FISTA."""
     b = b0.copy()
     z = b.copy()
@@ -252,12 +418,39 @@ def _resoudre_groupe(Gg, u, lam_g, b0, pas, n_iter=80, tol=1e-9):
     return b
 
 
-def nn_group_lasso(G, c, groupes, lam, poids, blocs_g, beta=None,
-                   max_iter=150, tol=1e-6):
-    """
-    G, c    : X'X/n et X'y/n
-    groupes : liste d'indices de colonnes (un tableau par aliment)
-    blocs_g : liste de (Gg, pas) préparés par `preparer_blocs`
+def nn_group_lasso(G, c, groups, lam, weights, group_blocks, beta=None,
+                    max_iter=150, tol=1e-6):
+    """Fit a non-negative group Lasso via block coordinate descent.
+
+    Solves, for beta >= 0 group-wise:
+        min_beta (1/2n) ||y - X beta||^2
+                  + lam * sum_g weights[g] * ||beta_g||_2
+
+    Each group is updated in turn using its precomputed Gram
+    submatrix and step size (see `prepare_groups`); a group is set
+    entirely to zero when its gradient fails the group-wise KKT
+    threshold test, otherwise it is solved via `_solve_group`.
+    G @ beta is maintained incrementally across updates rather than
+    recomputed from scratch each iteration.
+
+    Args:
+        G: (p, p) ndarray, Gram matrix X.T @ X / n.
+        c: (p,) ndarray, X.T @ y / n.
+        groups: List of 1-D index arrays, one per group (e.g. one
+            array of lag-kernel columns per food).
+        lam: float, overall regularization strength.
+        weights: (len(groups),) array-like of per-group penalty
+            weights, multiplying `lam` for each group.
+        group_blocks: List of (Gg, step) tuples as returned by
+            `prepare_groups`, in the same order as `groups`.
+        beta: (p,) initial coefficient vector. Defaults to all zeros.
+            If provided, it is copied, not modified in place.
+        max_iter: int, maximum number of full passes over all groups.
+        tol: float, convergence tolerance on the largest coefficient
+            change (across all groups) within a pass.
+
+    Returns:
+        (p,) ndarray, the fitted non-negative coefficient vector.
     """
     p = len(c)
     beta = np.zeros(p) if beta is None else beta.copy()
@@ -265,20 +458,20 @@ def nn_group_lasso(G, c, groupes, lam, poids, blocs_g, beta=None,
 
     for _ in range(max_iter):
         delta_max = 0.0
-        for gi, idx in enumerate(groupes):
-            Gg, pas = blocs_g[gi]
+        for gi, idx in enumerate(groups):
+            Gg, step = group_blocks[gi]
             bg = beta[idx]
             # X_g'(y - X beta_{-g}) / n
             u = c[idx] - Gbeta[idx] + Gg @ bg
-            lam_g = lam * poids[gi]
+            lam_g = lam * weights[gi]
             if np.linalg.norm(np.maximum(u, 0.0)) <= lam_g:
-                nouveau = np.zeros_like(bg)
+                new = np.zeros_like(bg)
             else:
-                nouveau = _resoudre_groupe(Gg, u, lam_g, bg, pas)
-            d = nouveau - bg
+                new = _solve_group(Gg, u, lam_g, bg, step)
+            d = new - bg
             dmax = np.abs(d).max()
             if dmax > 0.0:
-                beta[idx] = nouveau
+                beta[idx] = new
                 Gbeta += G[:, idx] @ d
                 delta_max = max(delta_max, dmax)
         if delta_max < tol:
@@ -286,14 +479,37 @@ def nn_group_lasso(G, c, groupes, lam, poids, blocs_g, beta=None,
     return beta
 
 
-def preparer_blocs(G, groupes):
-    """Sous-matrices de Gram par groupe et pas de gradient associé."""
-    prets = []
-    for idx in groupes:
+def prepare_groups(G, groups):
+    """Precompute per-group Gram submatrices and gradient step sizes.
+
+    For block coordinate descent (e.g. group Lasso), each group of
+    variables is updated using its own local Gram submatrix and a
+    step size safe for gradient (or proximal-gradient) updates
+    restricted to that group. The step size is set to 1/L, where L is
+    the largest eigenvalue of the group's Gram submatrix — the
+    Lipschitz constant of the gradient restricted to that group.
+
+    Args:
+        G: (p, p) ndarray, the full Gram matrix (e.g. X.T @ X).
+        groups: List of 1-D index arrays, each listing the columns of
+            G belonging to one group. Groups need not be the same
+            size and may overlap or leave columns unassigned.
+
+    Returns:
+        List of (Gg, step) tuples, one per group, in the same order
+        as `groups`:
+          Gg: (k, k) ndarray, the Gram submatrix restricted to that
+              group's k columns.
+          step: float, the gradient step size 1/L for that group.
+              Set to 0.0 if L is numerically negligible (<= 1e-12),
+              e.g. for a group of all-zero or fully collinear columns.
+    """
+    ready = []
+    for idx in groups:
         Gg = G[np.ix_(idx, idx)]
         L = float(np.linalg.eigvalsh(Gg)[-1])
-        prets.append((Gg, 1.0 / L if L > 1e-12 else 0.0))
-    return prets
+        ready.append((Gg, 1.0 / L if L > 1e-12 else 0.0))
+    return ready
 
 
 def lambda_max(c, groupes, poids):
@@ -484,14 +700,14 @@ def analyze(observations, repas, min_occurrences=MIN_OCCURRENCES,
     y = np.array([o[2] for o in observations], dtype=float)
 
     X = build_exposition(t_obs, repas_blocs, blocs)
-    Z = construire_controles(t_obs, heures)
+    Z = build_controls(t_obs, heures)
     rho = 0.0
     if blanchir and len(y) > 4:
         y_b, X_b, Z_b, rho = blanchir_ar1(y, X, Z, t_obs)
-        y_res, X_res = residualiser(y_b, X_b, Z_b)
+        y_res, X_res = residualize(y_b, X_b, Z_b)
         X, t_obs_eff = X[1:], t_obs[1:]
     else:
-        y_res, X_res = residualiser(y, X, Z)
+        y_res, X_res = residualize(y, X, Z)
         t_obs_eff = t_obs
 
     n, K = len(y_res), len(LAG_CENTERS)
@@ -531,7 +747,7 @@ def analyze(observations, repas, min_occurrences=MIN_OCCURRENCES,
         G_tot = Xs.T @ Xs / n
         c_tot = Xs.T @ y_res / n
         lambdas = grille_lambda(G_tot, c_tot, groupes, poids,
-                                preparer_blocs(G_tot, groupes), q_max)
+                                prepare_groups(G_tot, groupes), q_max)
     else:
         Xo = orthonormaliser(Xs, groupes)
         G_tot = Xo.T @ Xo / n
@@ -561,7 +777,7 @@ def analyze(observations, repas, min_occurrences=MIN_OCCURRENCES,
             Xb = orthonormaliser(Xb, groupes)
         G = Xb.T @ Xb / nb
         c = Xb.T @ yb / nb
-        blocs_g = preparer_blocs(G, groupes) if positif else None
+        blocs_g = prepare_groups(G, groupes) if positif else None
         beta = None
         for li, lam in enumerate(lambdas):
             beta = (nn_group_lasso(G, c, groupes, lam, poids, blocs_g, beta=beta)

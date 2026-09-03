@@ -32,14 +32,14 @@ from model import (
     MIN_DELAY,
     MAX_SPAN,
     analyze,
-    construire_controles,
+    build_controls,
     build_exposition,
     fusionner_indissociables,
     nn_group_lasso,
     normalize,
     kernels_weights,
-    preparer_blocs,
-    residualiser,
+    prepare_groups,
+    residualize,
 )
 from simu import generer
 
@@ -82,10 +82,10 @@ check(X[1, K:].sum() > 0, "le repas 5 h avant expose l'aliment b")
 
 print("\nrésidualisation (Frisch-Waugh-Lovell)")
 rng = np.random.default_rng(0)
-Z = construire_controles(np.arange(40) * 6.0, (np.arange(40) * 6.0) % 24)
+Z = build_controls(np.arange(40) * 6.0, (np.arange(40) * 6.0) % 24)
 Xr = rng.normal(size=(40, 5))
 yr = Z @ np.arange(1, 7) + Xr @ np.array([2.0, 0, 0, 0, 0]) + rng.normal(0, .1, 40)
-y_res, X_res = residualiser(yr, Xr, Z)
+y_res, X_res = residualize(yr, Xr, Z)
 check(np.abs(Z.T @ y_res).max() < 1e-8, "y résiduel orthogonal aux contrôles")
 check(np.abs(Z.T @ X_res).max() < 1e-8, "X résiduel orthogonal aux contrôles")
 
@@ -98,7 +98,7 @@ yg = Xg @ beta_vrai + rng.normal(0, 0.5, n)
 groupes = [np.arange(b * K, (b + 1) * K) for b in range(G_blocs)]
 Gm, cm = Xg.T @ Xg / n, Xg.T @ yg / n
 b = nn_group_lasso(Gm, cm, groupes, 0.15, np.full(G_blocs, np.sqrt(K)),
-                   preparer_blocs(Gm, groupes))
+                   prepare_groups(Gm, groupes))
 actifs = [g for g in range(G_blocs) if b[groupes[g]].max() > 0]
 check(actifs == [1], f"seul le groupe planté est sélectionné (obtenu {actifs})")
 check((b >= 0).all(), "contrainte de positivité respectée")
