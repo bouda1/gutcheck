@@ -132,7 +132,7 @@ def _un_journal(params):
                                  heures_releve=heures)
     res = analyze(obs, repas, n_replicats=n_replicats, seuil=seuil,
                    graine=graine)
-    if "erreur" in res:
+    if "error" in res:
         return None
     blocs, membres, vrais = res["blocs"], res["membres"], set(verite)
     retenus = [blocs[b] for b in res["retenus"]]
@@ -188,7 +188,7 @@ def evaluer(n_seeds=12, n_jours=28, n_replicats=120, seuil=None,
                                      heures_releve=heures_releve, **kw)
         n_obs = len(obs)
         res = analyze(obs, repas, n_replicats=n_replicats, seuil=seuil, graine=s)
-        if "erreur" in res:
+        if "error" in res:
             continue
         blocs, membres, vrais = res["blocs"], res["membres"], set(verite)
         retenus = [blocs[b] for b in res["retenus"]]

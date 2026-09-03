@@ -35,6 +35,7 @@ SELECTION FREQUENCY under block resampling by days
 (stability selection, Meinshausen & Bühlmann 2010).
 """
 
+import os
 import unicodedata
 from collections import defaultdict
 
@@ -168,7 +169,6 @@ def build_exposition(t_obs, meal, foods):
 
 import subprocess
 import tempfile
-import os
 
 def plot_exposition_gnuplot(X, t_obs, foods, K, lag_centers,
                              columns=None, outfile=None, title=None,
