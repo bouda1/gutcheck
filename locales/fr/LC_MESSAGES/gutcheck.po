@@ -1,14 +1,14 @@
-# French translations for PACKAGE package.
-# Copyright (C) 2026 THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the PACKAGE package.
+# French translations for the gutcheck package.
+# Copyright (C) 2026 The gutcheck authors
+# This file is distributed under the same license as the gutcheck package.
 # David Boucher <boudav@gmail.com>, 2026.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: PACKAGE VERSION\n"
+"Project-Id-Version: gutcheck\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-01 20:00+0200\n"
-"PO-Revision-Date: 2026-08-31 17:27+0200\n"
+"POT-Creation-Date: 2026-09-12 12:23+0200\n"
+"PO-Revision-Date: 2026-09-12 12:00+0200\n"
 "Last-Translator: David Boucher <boudav@gmail.com>\n"
 "Language-Team: French <traduc@traduc.org>\n"
 "Language: fr\n"
@@ -17,32 +17,72 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
-#: gutcheck.py:34 simu.py:233
+#: gutcheck.py:50 gutcheck.py:73 simu.py:264 spreadsheet.py:175
+#: test_gutcheck.py:48 test_gutcheck.py:182
 msgid "date"
 msgstr "date"
 
-#: gutcheck.py:34 gutcheck.py:57 simu.py:233 spreadsheet.py:150
+#: gutcheck.py:50 gutcheck.py:74 simu.py:264 spreadsheet.py:176
+#: test_gutcheck.py:48 test_gutcheck.py:183
 msgid "time"
 msgstr "heure"
 
-#: gutcheck.py:34 gutcheck.py:59 simu.py:233 spreadsheet.py:152
+#: gutcheck.py:50 gutcheck.py:76 simu.py:264 spreadsheet.py:178
+#: test_gutcheck.py:48 test_gutcheck.py:184
 msgid "meal"
 msgstr "repas"
 
-#: gutcheck.py:34 gutcheck.py:58 simu.py:233 spreadsheet.py:151
+#: gutcheck.py:50 gutcheck.py:75 simu.py:264 spreadsheet.py:177
+#: test_gutcheck.py:48 test_gutcheck.py:185
 msgid "foods"
 msgstr "aliments"
 
-#: gutcheck.py:34 gutcheck.py:60 simu.py:233 spreadsheet.py:153
+#: gutcheck.py:50 gutcheck.py:77 simu.py:264 spreadsheet.py:179
+#: test_gutcheck.py:186
 msgid "pain"
 msgstr "douleur"
 
-#: gutcheck.py:90
+#: gutcheck.py:107
 #, python-format
-msgid "missing column(s): %(missing)s  — expected: %(await)s"
-msgstr "colonne(s) absente(s) : %(missing)s  — attendu : %(await)s"
+msgid "missing column(s): %(missing)s — expected: %(expected)s"
+msgstr "colonne(s) absente(s) : %(missing)s — attendu : %(expected)s"
 
-#: gutcheck.py:176
+#: gutcheck.py:117
+msgid "line {}: date '{}' ignored"
+msgstr "ligne {} : date « {} » ignorée"
+
+#: gutcheck.py:127
+msgid "line {}: time '{}' unreadable, 12:00 assumed"
+msgstr "ligne {} : heure « {} » illisible, 12:00 supposé"
+
+#: gutcheck.py:141
+msgid "line {}: pain '{}' ignored"
+msgstr "ligne {} : douleur « {} » ignorée"
+
+#: gutcheck.py:146
+#, python-format
+msgid ""
+"%(n)s line without a time → 12:00 assumed; a wrong time degrades the lag "
+"estimate"
+msgid_plural ""
+"%(n)s lines without a time → 12:00 assumed; a wrong time degrades the lag "
+"estimate"
+msgstr[0] ""
+"%(n)s ligne sans heure → 12:00 supposé ; une heure fausse dégrade "
+"l'estimation du décalage"
+msgstr[1] ""
+"%(n)s lignes sans heure → 12:00 supposé ; une heure fausse dégrade "
+"l'estimation du décalage"
+
+#: gutcheck.py:152
+msgid "no usable line"
+msgstr "aucune ligne exploitable"
+
+#: gutcheck.py:175
+msgid "'{}' and '{}': the same food?"
+msgstr "« {} » et « {} » : le même aliment ?"
+
+#: gutcheck.py:200
 msgid ""
 "\n"
 "  Warning:"
@@ -50,7 +90,16 @@ msgstr ""
 "\n"
 "  Avertissements :"
 
-#: gutcheck.py:185
+#: gutcheck.py:205
+#, python-format
+msgid ""
+"\n"
+"  Analysis impossible: %(error)s\n"
+msgstr ""
+"\n"
+"  Analyse impossible : %(error)s\n"
+
+#: gutcheck.py:209
 #, python-format
 msgid ""
 "  %(days)s days · %(obs)s pain entries · %(nb)s foods analyzed "
@@ -59,65 +108,135 @@ msgstr ""
 "  %(days)s jours · %(obs)s relevés de douleur · %(nb)s aliments analysés "
 "(autocorrélation retirée : rho = %(rho).2f)"
 
-#: gutcheck.py:199
+#: gutcheck.py:223
 msgid "Food"
 msgstr "Aliment"
 
-#: gutcheck.py:199
+#: gutcheck.py:223
 msgid "Stability"
 msgstr "Stabilité"
 
-#: gutcheck.py:199
+#: gutcheck.py:223
 msgid "Lag"
 msgstr "Décalage"
 
-#: gutcheck.py:200
+#: gutcheck.py:224
 msgid "Peak"
 msgstr "Pic"
 
-#: gutcheck.py:200
+#: gutcheck.py:224
 msgid "Effect"
 msgstr "Effet"
 
-#: gutcheck.py:200
+#: gutcheck.py:224
 msgid "n meals"
 msgstr "n repas"
 
+#: gutcheck.py:238
+#, python-format
+msgid ""
+"\n"
+"  ◆ = selected (stability ≥ %(threshold).0f%%)"
+msgstr ""
+"\n"
+"  ◆ = retenu (stabilité ≥ %(threshold).0f%%)"
+
+#: gutcheck.py:240
+msgid "  Stability : fraction of the day-block resamplings in which the"
+msgstr "  Stabilité : fraction des ré-échantillonnages par blocs de jours où"
+
+#: gutcheck.py:241
+msgid "              food is selected, all foods competing."
+msgstr "              l'aliment est sélectionné, tous aliments en concurrence."
+
+#: gutcheck.py:242
+msgid "  Lag       : delay of the pain PEAK after ingestion."
+msgstr "  Décalage  : délai du PIC de douleur après l'ingestion."
+
 #: gutcheck.py:243
-msgid "  Next step — observation alone doesn't prove causality."
-msgstr "  Étape suivante — l'observation seule ne prouve pas la causalité."
+msgid "  Peak      : pain points added at the top, for one intake."
+msgstr "  Pic       : points de douleur ajoutés au sommet, pour une prise."
 
 #: gutcheck.py:244
-#, python-format
-msgid "  Remove %(aliment)s for 2 weeks while keeping the journal,"
-msgstr "  Supprimez %(aliment)s pendant 2 semaines en gardant le journal,"
+msgid "  Effect    : average attributable pain points over the whole"
+msgstr "  Effet     : points de douleur moyens attribuables sur l'ensemble du"
 
-#: gutcheck.py:247
+#: gutcheck.py:245
+msgid "              diary (≈ expected gain if the food is removed)."
+msgstr "              journal (≈ gain attendu si l'aliment est supprimé)."
+
+#: gutcheck.py:249
+msgid ""
+"\n"
+"  INSEPARABLE foods (always eaten together — no observational"
+msgstr ""
+"\n"
+"  Aliments INDISSOCIABLES (toujours consommés ensemble — aucune"
+
+#: gutcheck.py:250
+msgid "  data can tell them apart):"
+msgstr "  donnée d'observation ne peut les départager) :"
+
+#: gutcheck.py:255
+msgid ""
+"\n"
+"  UNDETECTABLE — eaten too regularly: there is no variation"
+msgstr ""
+"\n"
+"  INDÉTECTABLES — consommés de façon trop régulière : il n'existe"
+
+#: gutcheck.py:256
+msgid "  that could either incriminate or clear them."
+msgstr "  aucune variation permettant de les mettre en cause ou hors de cause."
+
+#: gutcheck.py:258
+msgid "  The only way to test them is to remove them temporarily."
+msgstr "  Le seul moyen de les tester est de les supprimer temporairement."
+
+#: gutcheck.py:261
+#, python-format
+msgid ""
+"\n"
+"  Discarded (< %(min)s occurrences): %(list)s"
+msgstr ""
+"\n"
+"  Écartés (< %(min)s occurrences) : %(list)s"
+
+#: gutcheck.py:270
+msgid "  Next step — observation alone doesn't prove causality."
+msgstr "  Prochaine étape — l'observation seule ne prouve pas la causalité."
+
+#: gutcheck.py:271
+#, python-format
+msgid "  Remove %(food)s for 2 weeks while keeping the journal,"
+msgstr "  Supprimez %(food)s pendant 2 semaines en continuant le journal,"
+
+#: gutcheck.py:274
 msgid "  then reintroduce it. One food at a time."
 msgstr "  puis réintroduisez-le. Un seul aliment à la fois."
 
-#: gutcheck.py:249
+#: gutcheck.py:276
 #, python-format
-msgid "  Next candidates: %(liste)s."
-msgstr "  Candidats suivants : %(liste)s."
+msgid "  Next candidates: %(list)s."
+msgstr "  Candidats suivants : %(list)s."
 
-#: gutcheck.py:253
+#: gutcheck.py:280
 msgid "  No food stands out consistently."
-msgstr "  Aucun aliment ne ressort de façon stable."
+msgstr "  Aucun aliment ne se détache de façon constante."
 
-#: gutcheck.py:254
+#: gutcheck.py:281
 msgid "  Possible causes: journal too short, effect genuinely weak, or"
-msgstr "  Causes possibles : journal trop court, effet réel faible, ou"
+msgstr "  Causes possibles : journal trop court, effet réellement faible, ou"
 
-#: gutcheck.py:255
+#: gutcheck.py:282
 msgid "  food eaten almost every day (no \"without\" days"
-msgstr "  aliment consommé presque tous les jours (pas de jours « sans »"
+msgstr "  aliment consommé presque chaque jour (aucun jour « sans »"
 
-#: gutcheck.py:256
+#: gutcheck.py:283
 msgid "  to compare against). Extend the journal or vary your diet."
-msgstr "  pour le comparer). Allongez le journal ou variez l'alimentation."
+msgstr "  pour comparer). Prolongez le journal ou variez votre alimentation."
 
-#: gutcheck.py:260
+#: gutcheck.py:287
 msgid ""
 "\n"
 "Two formats accepted: CSV, or LibreOffice Calc spreadsheet (.ods).\n"
@@ -155,33 +274,115 @@ msgstr ""
 "Colonnes attendues — date,heure,repas,aliments,douleur\n"
 "\n"
 "  date,heure,repas,aliments,douleur\n"
-"  2026-08-31,08:00,petit-déjeuner,oeufs; pain; cafe,2\n"
+"  2026-08-31,08:00,petit_dejeuner,oeufs; pain; cafe,2\n"
 "  2026-08-31,11:00,,,4              ← relevé de douleur seul\n"
-"  2026-08-31,12:30,déjeuner,riz; poulet; legumes,4\n"
-"  2026-08-31,19:00,dîner,soupe; fromage,\n"
+"  2026-08-31,12:30,dejeuner,riz; poulet; legumes,4\n"
+"  2026-08-31,19:00,diner,soupe; fromage,\n"
 "\n"
 "Tolérances de saisie :\n"
-"  - en-têtes : casse, accents et suffixes ignorés (« Douleur (0-10) » "
-"convient) ;\n"
+"  - en-têtes : casse, accents et suffixes ignorés (« Douleur (0-10) » marche "
+"aussi) ;\n"
 "  - dates    : 2026-08-31, 31/08/2026, 31.08.2026 ;\n"
-"  - heures   : 08:00, 8:00, 08:00:00, 08h30 ;\n"
-"  - dans un .ods, les cellules date/heure typées par Calc sont relues à "
-"leur\n"
-"    valeur réelle, pas à leur affichage local.\n"
+"  - heures   : 08:00, 8:00, 08:00:00, 8h30 ;\n"
+"  - dans un fichier .ods, les cellules date/heure typées par Calc sont lues "
+"à\n"
+"    leur valeur réelle, et non à leur affichage local.\n"
 "\n"
-"Deux conseils qui pèsent plus que l'algorithme :\n"
+"Deux conseils qui comptent plus que l'algorithme :\n"
 "\n"
-"  1. Relevez la douleur EN DEHORS des repas (colonnes aliments vides), "
-"toutes\n"
-"     les 3-4 h. Si la douleur n'est notée qu'aux repas, « décalage de 12 h\n"
-"     après le petit-déjeuner » et « le soir » sont la même chose : rien ne\n"
-"     permet de les distinguer.\n"
+"  1. Relevez la douleur EN DEHORS des repas (colonne aliments vide), toutes\n"
+"     les 3-4 heures. Si la douleur n'est notée qu'aux repas, « 12 h de\n"
+"     décalage après le petit-déjeuner » et « le soir » sont la même chose :\n"
+"     rien ne permet de les distinguer.\n"
 "\n"
-"  2. VARIEZ. Un aliment consommé tous les jours sans exception est\n"
-"     indétectable, quel que soit son effet : il n'existe aucun jour de\n"
-"     comparaison.\n"
+"  2. VARIEZ votre alimentation. Un aliment consommé tous les jours sans\n"
+"     exception est indétectable quel que soit son effet : il n'existe aucun\n"
+"     jour de comparaison.\n"
 
-#: gutcheck.py:342
+#: gutcheck.py:334
+#, python-format
+msgid ""
+"\n"
+"  Synthetic diary written to %(path)s (%(days)s days)."
+msgstr ""
+"\n"
+"  Journal synthétique écrit dans %(path)s (%(days)s jours)."
+
+#: gutcheck.py:336
+msgid "  Culprits actually injected (to be found again):"
+msgstr "  Coupables réellement injectés (à retrouver) :"
+
+#: gutcheck.py:338
+#, python-format
+msgid "    · %(name)-12s lag %(lag)4.0f h, amplitude %(amp).1f"
+msgstr "    · %(name)-12s décalage %(lag)4.0f h, amplitude %(amp).1f"
+
+#: gutcheck.py:340
+#, python-format
+msgid ""
+"\n"
+"  Try:  python gutcheck.py %(path)s\n"
+msgstr ""
+"\n"
+"  Essayez :  python gutcheck.py %(path)s\n"
+
+#: gutcheck.py:346
+msgid ""
+"\n"
+"  Validation on synthetic diaries with KNOWN culprits"
+msgstr ""
+"\n"
+"  Validation sur journaux synthétiques à coupables CONNUS"
+
+#: gutcheck.py:347
+msgid "  3 culprits among ~32 foods, lags 3 h / 6 h / 26 h,"
+msgstr "  3 coupables parmi ~32 aliments, décalages 3 h / 6 h / 26 h,"
+
+#: gutcheck.py:348
+msgid "  noisy and autocorrelated pain, foods tied to the time of"
+msgstr "  douleur bruitée et autocorrélée, aliments liés au moment du"
+
+#: gutcheck.py:349
+msgid "  the meal, one pair of inseparable foods.\n"
+msgstr "  repas, une paire d'aliments indissociables.\n"
+
+#: gutcheck.py:350
+msgid "pain recorded at meals only"
+msgstr "douleur relevée aux repas seuls"
+
+#: gutcheck.py:351
+msgid "+ 6 readings/day outside meals"
+msgstr "+ 6 relevés/jour hors repas"
+
+#: gutcheck.py:355
+msgid "days"
+msgstr "jours"
+
+#: gutcheck.py:355
+msgid "readings"
+msgstr "relevés"
+
+#: gutcheck.py:355
+msgid "recall"
+msgstr "rappel"
+
+#: gutcheck.py:356
+msgid "precision"
+msgstr "précision"
+
+#: gutcheck.py:356
+msgid "lag err."
+msgstr "err. décalage"
+
+#: gutcheck.py:365
+msgid "  recall    : share of the true culprits that were selected"
+msgstr "  rappel    : part des vrais coupables retenus"
+
+#: gutcheck.py:366
+msgid "  precision : share of the selected foods that really are culprits\n"
+msgstr "  précision : part des aliments retenus qui sont vraiment coupables\n"
+
+#: gutcheck.py:373
 #, python-format
 msgid ""
 "\n"
@@ -190,39 +391,171 @@ msgstr ""
 "\n"
 "  Journal trop court : %(obs)s relevés de douleur, %(meals)s repas."
 
-#: gutcheck.py:347
-msgid "  You need at least about ten days. See --aide-format.\n"
-msgstr "  Il vous faut au moins une dizaine de jours. Voir --aide-format.\n"
+#: gutcheck.py:378
+msgid "  You need at least about ten days. See --format-help.\n"
+msgstr "  Il faut au moins une dizaine de jours. Voir --format-help.\n"
 
-#: simu.py:22 simu.py:222
-msgid "breakfast"
-msgstr "petit-déjeuner"
+#: model.py:690
+msgid "no food reaches the minimum number of occurrences"
+msgstr "aucun aliment n'atteint le nombre minimal d'occurrences"
 
-#: simu.py:22 simu.py:222
-msgid "lunch"
-msgstr "déjeuner"
-
-#: simu.py:22 simu.py:222
-msgid "dinner"
-msgstr "dîner"
-
-#: test_gutcheck.py:88
-msgid "Date"
+#: model.py:729
+msgid "no food varies enough to be tested (diet too regular)"
 msgstr ""
+"aucun aliment ne varie assez pour être testé (alimentation trop régulière)"
 
-#: test_gutcheck.py:88 test_gutcheck.py:115
-msgid "Time"
-msgstr "Heure"
+#: model.py:792
+msgid "diary too short for resampling"
+msgstr "journal trop court pour le ré-échantillonnage"
 
-#: test_gutcheck.py:88 test_gutcheck.py:115
-msgid "Meal"
-msgstr "Repas"
+#: simu.py:40 simu.py:253
+msgid "breakfast"
+msgstr "petit_dejeuner"
 
-#: test_gutcheck.py:89 test_gutcheck.py:115
-#, fuzzy
-msgid "Foods"
-msgstr "Aliment"
+#: simu.py:40 simu.py:253
+msgid "lunch"
+msgstr "dejeuner"
 
-#: test_gutcheck.py:89 test_gutcheck.py:115
-msgid "Pain (0-10)"
-msgstr "Douleur (0-10)"
+#: simu.py:40 simu.py:253
+msgid "dinner"
+msgstr "diner"
+
+#: simu.py:44
+msgid "coffee"
+msgstr "cafe"
+
+#: simu.py:44 simu.py:108
+msgid "bread"
+msgstr "pain"
+
+#: simu.py:45
+msgid "butter"
+msgstr "beurre"
+
+#: simu.py:45
+msgid "jam"
+msgstr "confiture"
+
+#: simu.py:46
+msgid "milk"
+msgstr "lait"
+
+#: simu.py:46
+msgid "cereal"
+msgstr "cereales"
+
+#: simu.py:47
+msgid "eggs"
+msgstr "oeufs"
+
+#: simu.py:47
+msgid "banana"
+msgstr "banane"
+
+#: simu.py:48
+msgid "yoghurt"
+msgstr "yaourt"
+
+#: simu.py:48
+msgid "orange juice"
+msgstr "jus_orange"
+
+#: simu.py:49
+msgid "rice"
+msgstr "riz"
+
+#: simu.py:49
+msgid "pasta"
+msgstr "pates"
+
+#: simu.py:50
+msgid "chicken"
+msgstr "poulet"
+
+#: simu.py:50
+msgid "beef"
+msgstr "boeuf"
+
+#: simu.py:51
+msgid "fish"
+msgstr "poisson"
+
+#: simu.py:51
+msgid "vegetables"
+msgstr "legumes"
+
+#: simu.py:52
+msgid "salad"
+msgstr "salade"
+
+#: simu.py:52
+msgid "tomato"
+msgstr "tomate"
+
+#: simu.py:53 simu.py:66
+msgid "cheese"
+msgstr "fromage"
+
+#: simu.py:53
+msgid "potato"
+msgstr "pomme_de_terre"
+
+#: simu.py:54
+msgid "oil"
+msgstr "huile"
+
+#: simu.py:54 simu.py:66
+msgid "wine"
+msgstr "vin"
+
+#: simu.py:55
+msgid "chocolate"
+msgstr "chocolat"
+
+#: simu.py:55
+msgid "apple"
+msgstr "pomme"
+
+#: simu.py:56
+msgid "soup"
+msgstr "soupe"
+
+#: simu.py:56
+msgid "lentils"
+msgstr "lentilles"
+
+#: simu.py:57 simu.py:63
+msgid "onion"
+msgstr "oignon"
+
+#: simu.py:57 simu.py:63
+msgid "garlic"
+msgstr "ail"
+
+#: simu.py:58 simu.py:67
+msgid "chilli"
+msgstr "piment"
+
+#: simu.py:58
+msgid "prawns"
+msgstr "crevettes"
+
+#: simu.py:59
+msgid "mushroom"
+msgstr "champignon"
+
+#: simu.py:59
+msgid "courgette"
+msgstr "courgette"
+
+#: simu.py:270
+msgid "diary"
+msgstr "journal"
+
+#: spreadsheet.py:115
+msgid "no sheet in the workbook"
+msgstr "aucune feuille dans le classeur"
+
+#: spreadsheet.py:121
+msgid "sheet '{}' not found (available: {})"
+msgstr "feuille « {} » absente (disponibles : {})"

@@ -1,4 +1,20 @@
 #!/usr/bin/env python3
+# gutcheck - detection of pain-triggering foods, with unknown time lag
+# Copyright (C) 2026 The gutcheck authors (see the AUTHORS file)
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 """
 Detection of pain-triggering foods, with unknown time lag
 and several possible culprits.
@@ -27,8 +43,8 @@ from datetime import datetime
 import numpy as np
 from babel.dates import parse_date, parse_time
 
-from i18n import _
-from modele import MIN_OCCURRENCES, SEUIL_STABILITE, analyser, normalize
+from i18n import LANG_CODE, _, n_
+from model import MIN_OCCURRENCES, STABILITY_THRESHOLD, analyze, normalize
 from spreadsheet import normalize_header, read_ods
 
 COLUMNS = (_("date"), _("time"), _("meal"), _("foods"), _("pain"))
@@ -54,10 +70,11 @@ def read_lines(file, sheet=None):
         try:
             headers = [normalize_header(x) for x in next(reader)]
             replacements = {
-                _("time"): "time",
-                _("foods"): "foods",
-                _("meal"): "meal",
-                _("pain"): "pain",
+                normalize_header(_("date")): "date",
+                normalize_header(_("time")): "time",
+                normalize_header(_("foods")): "foods",
+                normalize_header(_("meal")): "meal",
+                normalize_header(_("pain")): "pain",
             }
 
             headers = [replacements.get(x, x) for x in headers]
@@ -82,73 +99,80 @@ def load_diary(file, sheet=None):
             meals: list of tuples (hours_since_first, list_of_foods)
             warnings: list of warning messages
     """
-    lines, avert, no_time = [], [], 0
+    lines, warnings, no_time = [], [], 0
     raw = read_lines(file, sheet)
-    missings = [c for c in ("date", "foods", "pain")
+    missing = [c for c in ("date", "foods", "pain")
                   if raw and c not in raw[0]]
-    if missings:
-        avert.append(_("missing column(s): %(missing)s  — expected: %(await)s") % {"missing": ', '.join(missings), "await": ', '.join(COLUMNS)})
+    if missing:
+        warnings.append(_("missing column(s): %(missing)s — expected: %(expected)s")
+                        % {"missing": ', '.join(missing),
+                           "expected": ', '.join(COLUMNS)})
     for num, line in enumerate(raw, start=2):
-        texte_date = (line.get("date") or "").strip()
-        if not texte_date:
+        txt_date = (line.get("date") or "").strip()
+        if not txt_date:
             continue
         try:
-            d = parse_date(texte_date)
+            d = parse_date(txt_date, locale=LANG_CODE)
         except ValueError:
-            avert.append(f"ligne {num} : date « {texte_date} » ignorée")
+            warnings.append(_("line {}: date '{}' ignored").format(num, txt_date))
             continue
 
-        texte_heure = (line.get("time") or "").strip()
-        if not texte_heure:
+        txt_time = (line.get("time") or "").strip()
+        if not txt_time:
             no_time += 1
-            texte_heure = "12:00"
+            txt_time = "12:00"
         try:
-            h = parse_time(texte_heure)
+            h = parse_time(txt_time, locale=LANG_CODE)
         except ValueError:
-            avert.append(f"ligne {num} : heure « {texte_heure} » → 12:00")
-            h = parse_time("12:00")
+            warnings.append(_("line {}: time '{}' unreadable, "
+                              "12:00 assumed").format(num, txt_time))
+            h = parse_time("12:00", locale=LANG_CODE)
         ts = datetime.combine(d, h)
 
-        aliments = [normalize(a) for a in (line.get("foods") or "").split(";")]
-        aliments = sorted({a for a in aliments if a})
+        foods = [normalize(a) for a in (line.get("foods") or "").split(";")]
+        foods = sorted({a for a in foods if a})
 
-        texte_douleur = (line.get("pain") or "").strip()
-        douleur = None
-        if texte_douleur:
+        txt_pain = (line.get("pain") or "").strip()
+        pain_value = None
+        if txt_pain:
             try:
-                douleur = float(texte_douleur.replace(",", "."))
+                pain_value = float(txt_pain.replace(",", "."))
             except ValueError:
-                avert.append(f"ligne {num} : douleur « {texte_douleur} » ignorée")
-        lines.append((ts, aliments, douleur))
+                warnings.append(_("line {}: pain '{}' ignored").format(
+                    num, txt_pain))
+        lines.append((ts, foods, pain_value))
 
     if no_time:
-        avert.append(f"{no_time} ligne(s) sans heure → 12:00 supposé ; "
-                     "une heure fausse dégrade l'estimation du décalage")
+        warnings.append(n_("%(n)s line without a time → 12:00 assumed; "
+                           "a wrong time degrades the lag estimate",
+                           "%(n)s lines without a time → 12:00 assumed; "
+                           "a wrong time degrades the lag estimate",
+                           no_time) % {"n": no_time})
     if not lines:
-        return [], [], avert + ["aucune ligne exploitable"]
+        return [], [], warnings + [_("no usable line")]
 
-    #  Tri chronologique : le blanchiment AR(1) et le découpage en blocs de
-    #  jours supposent des relevés ordonnés, or rien ne garantit que le CSV l'est.
+    #  Chronological sort: the AR(1) whitening and the splitting into blocks of
+    #  days assume ordered readings, and nothing guarantees the CSV is sorted.
     lines.sort(key=lambda x: x[0])
-    origine = lines[0][0]
-    en_heures = lambda t: (t - origine).total_seconds() / 3600.0
+    origin = lines[0][0]
+    to_hours = lambda t: (t - origin).total_seconds() / 3600.0
 
-    repas = [(en_heures(t), a) for t, a, _ in lines if a]
-    observations = [(en_heures(t), t.hour + t.minute / 60.0, d)
-                    for t, _, d in lines if d is not None]
-    return observations, repas, avert + noms_suspects(repas)
+    meals = [(to_hours(t), a) for t, a, _p in lines if a]
+    observations = [(to_hours(t), t.hour + t.minute / 60.0, d)
+                    for t, _f, d in lines if d is not None]
+    return observations, meals, warnings + suspicious_names(meals)
 
 
-def noms_suspects(repas, distance_max=1):
-    """Signale les noms d'aliments quasi identiques (fautes de frappe)."""
-    noms = sorted({a for _, alims in repas for a in alims})
+def suspicious_names(meals, max_distance=1):
+    """Report food names that are nearly identical (likely typos)."""
+    names = sorted({a for _, items in meals for a in items})
     suspects = []
-    for i, a in enumerate(noms):
-        for b in noms[i + 1:]:
-            if abs(len(a) - len(b)) > distance_max or a[0] != b[0]:
+    for i, a in enumerate(names):
+        for b in names[i + 1:]:
+            if abs(len(a) - len(b)) > max_distance or a[0] != b[0]:
                 continue
-            if _distance(a, b) <= distance_max:
-                suspects.append(f"« {a} » et « {b} » : même aliment ?")
+            if _distance(a, b) <= max_distance:
+                suspects.append(_("'{}' and '{}': the same food?").format(a, b))
     return suspects
 
 
@@ -171,83 +195,86 @@ def _distance(a, b):
     return prev[-1]
 
 
-def display(res, avert):
-    if avert:
+def display(res, warnings):
+    if warnings:
         print(_("\n  Warning:"))
-        for a in avert:
+        for a in warnings:
             print(f"    · {a}")
 
-    if "erreur" in res:
-        print(f"\n  Analyse impossible : {res['erreur']}\n")
+    if "error" in res:
+        print(_("\n  Analysis impossible: %(error)s\n") % {"error": res["error"]})
         return
 
     print(f"\n{'='*72}")
     print(_("  %(days)s days · %(obs)s pain entries "
             "· %(nb)s foods analyzed "
             "(autocorrelation removed: rho = %(rho).2f)") % {
-                "days": res['n_jours'],
+                "days": res['n_days'],
                 "obs": res['n_observations'],
-                "nb": len(res['blocs']),
+                "nb": len(res['blocks']),
                 "rho": res['rho_ar1'],
     })
     print(f"{'='*72}\n")
 
-    ordre = np.argsort(-res["frequences"])
-    seuil = res["seuil"]
-    retenus = set(res["retenus"].tolist())
+    order = np.argsort(-res["frequencies"])
+    threshold = res["threshold"]
+    selected = set(res["selected"].tolist())
 
     print(f"  {_('Food'):<24} {_('Stability'):>10} {_('Lag'):>9} "
                 f"{_('Peak'):>7} {_('Effect'):>7}  {_('n meals'):>7}")
     print(f"  {'-'*24} {'-'*10} {'-'*9} {'-'*7} {'-'*7}  {'-'*7}")
-    for i in ordre[:12]:
-        f = res["frequences"][i]
+    for i in order[:12]:
+        f = res["frequencies"][i]
         if f < 0.15:
             break
-        lag = res["decalages"][i]
-        marque = "◆" if i in retenus else " "
+        lag = res["lags"][i]
+        mark = "◆" if i in selected else " "
         lag_txt = f"{lag:4.0f} h" if not np.isnan(lag) else "   –"
-        pic_txt = f"+{res['pics'][i]:.1f}" if res["pics"][i] > 0 else "   –"
-        eff_txt = f"+{res['effets'][i]:.2f}" if res["effets"][i] > 0 else "   –"
-        print(f" {marque}{res['blocs'][i]:<24} {f:>9.0%} {lag_txt:>9} "
-              f"{pic_txt:>7} {eff_txt:>7}  {res['occurrences'][i]:>7}")
+        peak_txt = f"+{res['peaks'][i]:.1f}" if res["peaks"][i] > 0 else "   –"
+        effect_txt = f"+{res['effects'][i]:.2f}" if res["effects"][i] > 0 else "   –"
+        print(f" {mark}{res['blocks'][i]:<24} {f:>9.0%} {lag_txt:>9} "
+              f"{peak_txt:>7} {effect_txt:>7}  {res['occurrences'][i]:>7}")
 
-    print(f"\n  ◆ = retenu (stabilité ≥ {seuil:.0%})")
-    print("  Stabilité : fraction des ré-échantillonnages par blocs de jours où")
-    print("              l'aliment est sélectionné, tous aliments en concurrence.")
-    print("  Décalage  : délai du PIC de douleur après l'ingestion.")
-    print("  Pic       : points de douleur ajoutés au sommet, pour une prise.")
-    print("  Effet     : points de douleur moyens attribuables sur l'ensemble du")
-    print("              journal (≈ gain attendu si l'aliment est supprimé).")
+    print(_("\n  ◆ = selected (stability ≥ %(threshold).0f%%)") % {
+        "threshold": threshold * 100})
+    print(_("  Stability : fraction of the day-block resamplings in which the"))
+    print(_("              food is selected, all foods competing."))
+    print(_("  Lag       : delay of the pain PEAK after ingestion."))
+    print(_("  Peak      : pain points added at the top, for one intake."))
+    print(_("  Effect    : average attributable pain points over the whole"))
+    print(_("              diary (≈ expected gain if the food is removed)."))
 
-    multiples = [b for b in res["blocs"] if "+" in b]
-    if multiples:
-        print("\n  Aliments INDISSOCIABLES (toujours consommés ensemble — aucune")
-        print("  donnée d'observation ne peut les départager) :")
-        for b in multiples:
+    multiple = [b for b in res["blocks"] if "+" in b]
+    if multiple:
+        print(_("\n  INSEPARABLE foods (always eaten together — no observational"))
+        print(_("  data can tell them apart):"))
+        for b in multiple:
             print(f"    · {b.replace('+', ' + ')}")
 
-    if res["indetectables"]:
-        print("\n  INDÉTECTABLES — consommés de façon trop régulière : il n'existe")
-        print("  aucune variation permettant de les mettre en cause ou hors de cause.")
-        print(f"    {', '.join(res['indetectables'])}")
-        print("  Le seul moyen de les tester est de les supprimer temporairement.")
+    if res["undetectable"]:
+        print(_("\n  UNDETECTABLE — eaten too regularly: there is no variation"))
+        print(_("  that could either incriminate or clear them."))
+        print(f"    {', '.join(res['undetectable'])}")
+        print(_("  The only way to test them is to remove them temporarily."))
 
-    if res["ecartes"]:
-        print(f"\n  Écartés (< {MIN_OCCURRENCES} occurrences) : "
-              f"{', '.join(res['ecartes'][:15])}"
-              f"{'…' if len(res['ecartes']) > 15 else ''}")
+    if res["discarded"]:
+        print(_("\n  Discarded (< %(min)s occurrences): %(list)s") % {
+            "min": MIN_OCCURRENCES,
+            "list": ', '.join(res['discarded'][:15])
+                    + ('…' if len(res['discarded']) > 15 else ''),
+        })
 
-    tete = [res["blocs"][i] for i in ordre if res["frequences"][i] >= seuil][:3]
+    top = [res["blocks"][i] for i in order if res["frequencies"][i] >= threshold][:3]
     print(f"\n{'-'*72}")
-    if tete:
+    if top:
         print(_("  Next step — observation alone doesn't prove causality."))
-        print(_("  Remove %(aliment)s for 2 weeks while keeping the journal,") % {
-                    "aliment": tete[0],
+        print(_("  Remove %(food)s for 2 weeks while keeping the journal,") % {
+                    "food": top[0],
         })
         print(_("  then reintroduce it. One food at a time."))
-        if len(tete) > 1:
-            print(_("  Next candidates: %(liste)s.") % {
-                      "liste": ', '.join(tete[1:]),
+        if len(top) > 1:
+            print(_("  Next candidates: %(list)s.") % {
+                      "list": ', '.join(top[1:]),
             })
     else:
         print(_("  No food stands out consistently."))
@@ -257,7 +284,7 @@ def display(res, avert):
     print(f"{'-'*72}\n")
 
 
-AIDE_FORMAT = _("""
+FORMAT_HELP = _("""
 Two formats accepted: CSV, or LibreOffice Calc spreadsheet (.ods).
 
 Expected columns — date,time,meal,foods,pain
@@ -291,64 +318,68 @@ Two tips that matter more than the algorithm:
 def main():
     args = sys.argv[1:]
 
-    if not args or args[0] in ("-h", "--help", "--aide"):
+    if not args or args[0] in ("-h", "--help"):
         print(__doc__)
         sys.exit(0 if args else 1)
 
-    if args[0] in ("--aide-format", "--format-help"):
-        print(AIDE_FORMAT)
+    if args[0] == "--format-help":
+        print(FORMAT_HELP)
         return
 
-    if args[0] in ("--example", "--exemple"):
+    if args[0] == "--example":
         from simu import write_diary
-        chemin = args[1] if len(args) > 1 else "journal_exemple.csv"
-        n_jours = int(args[2]) if len(args) > 2 else 42
-        verite = write_diary(chemin, n_jours=n_jours)
-        print(f"\n  Journal synthétique écrit dans {chemin} ({n_jours} jours).")
-        print("  Coupables réellement injectés (à retrouver) :")
-        for nom, (lag, amp) in verite.items():
-            print(f"    · {nom:<12} décalage {lag:>4.0f} h, amplitude {amp:.1f}")
-        print(f"\n  Essayez :  python gutcheck.py {chemin}\n")
+        path = args[1] if len(args) > 1 else "example_diary.csv"
+        n_days = int(args[2]) if len(args) > 2 else 42
+        truth = write_diary(path, n_days=n_days)
+        print(_("\n  Synthetic diary written to %(path)s (%(days)s days).") % {
+            "path": path, "days": n_days})
+        print(_("  Culprits actually injected (to be found again):"))
+        for name, (lag, amp) in truth.items():
+            print(_("    · %(name)-12s lag %(lag)4.0f h, amplitude %(amp).1f") % {
+                "name": name, "lag": lag, "amp": amp})
+        print(_("\n  Try:  python gutcheck.py %(path)s\n") % {"path": path})
         return
 
-    if args[0] == "--valider":
-        from simu import evaluer_parallele
-        durees = [int(a) for a in args[1:]] or [21, 28, 42, 56, 84]
-        print("\n  Validation sur journaux synthétiques à coupables CONNUS")
-        print("  3 coupables parmi ~32 aliments, décalages 3 h / 6 h / 26 h,")
-        print("  douleur bruitée et autocorrélée, aliments liés au moment du")
-        print("  repas, une paire d'aliments indissociables.\n")
-        protocoles = [("douleur relevée aux repas seuls", None),
-                      ("+ 6 relevés/jour hors repas", [7, 10, 13, 16, 19, 22])]
-        for titre, heures in protocoles:
-            print(f"  {titre}")
-            print(f"    {'jours':>6} {'relevés':>8} {'rappel':>8} "
-                  f"{'précision':>10} {'err. décalage':>14}")
+    if args[0] == "--validate":
+        from simu import evaluate_parallel
+        durations = [int(a) for a in args[1:]] or [21, 28, 42, 56, 84]
+        print(_("\n  Validation on synthetic diaries with KNOWN culprits"))
+        print(_("  3 culprits among ~32 foods, lags 3 h / 6 h / 26 h,"))
+        print(_("  noisy and autocorrelated pain, foods tied to the time of"))
+        print(_("  the meal, one pair of inseparable foods.\n"))
+        protocols = [(_("pain recorded at meals only"), None),
+                     (_("+ 6 readings/day outside meals"),
+                      [7, 10, 13, 16, 19, 22])]
+        for title, hours in protocols:
+            print(f"  {title}")
+            print(f"    {_('days'):>6} {_('readings'):>8} {_('recall'):>8} "
+                  f"{_('precision'):>10} {_('lag err.'):>14}")
             print(f"    {'-'*6} {'-'*8} {'-'*8} {'-'*10} {'-'*14}")
-            for j in durees:
-                r = evaluer_parallele(n_seeds=12, n_jours=j,
-                                      heures_releve=heures)
-                print(f"    {j:>6} {r['n_obs']:>8} {r['rappel']:>7.0%} "
+            for j in durations:
+                r = evaluate_parallel(n_seeds=12, n_days=j,
+                                      reading_hours=hours)
+                print(f"    {j:>6} {r['n_obs']:>8} {r['recall']:>7.0%} "
                       f"{r['precision']:>10.0%} {r['err_lag_h']:>12.1f} h",
                       flush=True)
             print()
-        print("  rappel    : part des vrais coupables retenus")
-        print("  précision : part des aliments retenus qui sont vraiment coupables\n")
+        print(_("  recall    : share of the true culprits that were selected"))
+        print(_("  precision : share of the selected foods that really are "
+                "culprits\n"))
         return
 
     sheet = args[1] if len(args) > 1 else None
-    observations, repas, avert = load_diary(args[0], sheet)
-    if len(observations) < 10 or len(repas) < 5:
+    observations, meals, warnings = load_diary(args[0], sheet)
+    if len(observations) < 10 or len(meals) < 5:
         print(_("\n  Diary too short: %(obs)s pain entries, "
                 "%(meals)s meals.") % {
                     "obs": len(observations),
-                    "meals": len(repas),
+                    "meals": len(meals),
         })
-        print(_("  You need at least about ten days. See --aide-format.\n"))
+        print(_("  You need at least about ten days. See --format-help.\n"))
         sys.exit(1)
 
-    res = analyser(observations, repas, seuil=SEUIL_STABILITE)
-    display(res, avert)
+    res = analyze(observations, meals, threshold=STABILITY_THRESHOLD)
+    display(res, warnings)
 
 
 if __name__ == "__main__":

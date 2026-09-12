@@ -1,0 +1,9 @@
+# Development tooling for gutcheck.
+# Install : uv pip install -r requirements-dev.txt
+# Upgrade : uv pip install --upgrade -r requirements-dev.txt
+
+-r requirements.txt
+
+pytest>=9.1.1   # tests (test_gutcheck.py)
+ruff>=0.16.5    # lint
+pudb>=2025.1.5  # terminal debugger
