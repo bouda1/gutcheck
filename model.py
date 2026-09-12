@@ -41,6 +41,8 @@ from collections import defaultdict
 
 import numpy as np
 
+from i18n import _
+
 # Lag basis: raised-cosine kernels, 0-84 h. Centers and half-widths in hours.
 LAG_CENTERS = np.array([2.0, 5.0, 9.0, 15.0, 24.0, 40.0, 60.0])
 LAG_WIDTHS = np.array([3.0, 4.0, 5.0, 8.0, 12.0, 18.0, 24.0])
@@ -48,26 +50,26 @@ MIN_DELAY = 0.25          # A meal never acts on a simultaneous pain
 MAX_SPAN = float(LAG_CENTERS[-1] + LAG_WIDTHS[-1])
 
 # Selection by stability (Meinshausen & Bühlmann 2010)
-TAILLE_BLOC_JOURS = 3     # blocs contigus : préserve l'autocorrélation
-FRACTION_SOUS_ECH = 0.5
-N_REPLICATS = 200
+DAY_BLOCK_SIZE = 3     # contiguous blocks: preserves the autocorrelation
+SUBSAMPLE_FRACTION = 0.5
+N_REPLICATES = 200
 N_LAMBDAS = 6
-SEUIL_STABILITE = 0.70
+STABILITY_THRESHOLD = 0.70
 
-MIN_OCCURRENCES = 3       # nb minimal de repas contenant l'aliment
-SEUIL_JACCARD = 0.85      # au-delà : aliments indissociables, fusionnés
+MIN_OCCURRENCES = 3       # minimum number of meals containing the food
+JACCARD_THRESHOLD = 0.85      # above: inseparable foods, merged
 
 
 def normalize(name):
     """ Normalize a food name to a canonical form: lowercase, no accents, unified separators.
 
     Examples:
-        >>> normalize("Pain au chocolat")
-        'pain_au_chocolat'
+        >>> normalize("Chocolate bread")
+        'chocolate_bread'
         >>> normalize("Crème brûlée")
         'creme_brulee'
-        >>> normalize("Salade de fruits - frais")
-        'salade_de_fruits_frais'
+        >>> normalize("Fruit salad - fresh")
+        'fruit_salad_fresh'
 
     Args:
         name (str): The food name to normalize.
@@ -81,7 +83,7 @@ def normalize(name):
 
 
 # ══════════════════════════════════════════════════════════════════
-#  Matrice d'exposition
+#  Exposure matrix
 # ══════════════════════════════════════════════════════════════════
 
 def kernels_weights(delays):
@@ -156,11 +158,11 @@ def build_exposition(t_obs, meal, foods):
         delays = t_obs - meal_time_hours
 		# We check that the delays are within the range of MIN_DELAY and MAX_SPAN,
         # and we only keep the relevant ones.
-        pertinents = (delays >= MIN_DELAY) & (delays <= MAX_SPAN)
-        if not pertinents.any():
+        relevant = (delays >= MIN_DELAY) & (delays <= MAX_SPAN)
+        if not relevant.any():
             continue
-        w = kernels_weights(delays[pertinents])          # (m, K)
-        lines = np.flatnonzero(pertinents)
+        w = kernels_weights(delays[relevant])          # (m, K)
+        lines = np.flatnonzero(relevant)
         for i in targets:
             j = idx[norm_foods[i]] * K
             X[np.ix_(lines, np.arange(j, j + K))] += w
@@ -172,30 +174,30 @@ import tempfile
 
 def plot_exposition_gnuplot(X, t_obs, foods, K, lag_centers,
                              columns=None, outfile=None, title=None,
-                             xlabel="Temps (h)", ylabel="Dose cumulée",
+                             xlabel="Time (h)", ylabel="Cumulative dose",
                              terminal="qt"):
     """
-    Trace une ou plusieurs colonnes de la matrice retournée par
-    build_exposition, avec gnuplot.
+    Plot one or several columns of the matrix returned by
+    build_exposition, using gnuplot.
 
     Args:
-        X: (n, F*K) matrice de design (sortie de build_exposition).
-        t_obs: (n,) temps des observations (axe des abscisses).
-        foods: liste ordonnée des aliments (même ordre que build_exposition).
-        K: nombre de noyaux de lag (len(LAG_CENTERS)).
-        lag_centers: centres des noyaux (LAG_CENTERS), pour légender.
-        columns: liste des séries à tracer. Chaque élément peut être :
-            - un int : index de colonne direct dans X
-            - (aliment, k) : aliment + index de noyau (0 <= k < K)
-            - (aliment, None) : somme sur tous les noyaux pour cet aliment
-              (exposition totale, tous lags confondus)
-            Si None : trace le total (tous lags) de chaque aliment de `foods`.
-        outfile: chemin d'image (.png/.svg/.pdf) ; si None, fenêtre interactive.
-        title, xlabel, ylabel: habillage du graphe.
-        terminal: terminal gnuplot interactif (qt, wxt, x11...).
+        X: (n, F*K) design matrix (output of build_exposition).
+        t_obs: (n,) observation times (x axis).
+        foods: ordered list of foods (same order as build_exposition).
+        K: number of lag kernels (len(LAG_CENTERS)).
+        lag_centers: kernel centers (LAG_CENTERS), used for the legend.
+        columns: list of series to plot. Each item may be:
+            - an int: direct column index into X
+            - (food, k): food + kernel index (0 <= k < K)
+            - (food, None): sum over every kernel for that food
+              (total exposure, all lags together)
+            If None: plot the total (all lags) of every food in `foods`.
+        outfile: image path (.png/.svg/.pdf); if None, an interactive window.
+        title, xlabel, ylabel: graph decoration.
+        terminal: interactive gnuplot terminal (qt, wxt, x11...).
 
     Returns:
-        Le chemin du fichier produit (si outfile fourni) ou None.
+        The path of the produced file (if outfile is given) or None.
     """
     t_obs = np.asarray(t_obs, dtype=float)
     idx = {a: i for i, a in enumerate(foods)}
@@ -209,22 +211,22 @@ def plot_exposition_gnuplot(X, t_obs, foods, K, lag_centers,
             values = X[:, item]
             label = f"col{item}"
         else:
-            aliment, k = item
-            if aliment not in idx:
-                raise ValueError(f"Aliment inconnu: {aliment}")
-            base = idx[aliment] * K
+            food, k = item
+            if food not in idx:
+                raise ValueError(f"unknown food: {food}")
+            base = idx[food] * K
             if k is None:
                 values = X[:, base:base + K].sum(axis=1)
-                label = f"{aliment} (total)"
+                label = f"{food} (total)"
             else:
                 if not (0 <= k < K):
-                    raise ValueError(f"Index de noyau invalide: {k}")
+                    raise ValueError(f"invalid kernel index: {k}")
                 values = X[:, base + k]
                 lag_lbl = lag_centers[k] if lag_centers is not None else k
-                label = f"{aliment} (lag={lag_lbl})"
+                label = f"{food} (lag={lag_lbl})"
         series.append((label, values))
 
-    # Tri par temps pour un tracé propre
+    # Sort by time for a clean plot
     order = np.argsort(t_obs)
     t_sorted = t_obs[order]
 
@@ -323,14 +325,14 @@ def build_controls(t_obs, time_of_day):
     ])
 
 
-def blanchir_ar1(y, X, Z, t_obs):
+def whiten_ar1(y, X, Z, t_obs):
     """
-    Transformation de Cochrane-Orcutt : la douleur est autocorrélée d'un repas
-    au suivant. Sans blanchiment, le modèle « explique » cette inertie en
-    attribuant à des aliments innocents la lente dérive du niveau de douleur.
-    Le coefficient est atténué en puissance de l'écart de temps réel, les
-    observations n'étant pas régulièrement espacées. Suppose `t_obs` trié.
-    → (y, X, Z, rho) — la première observation est consommée par la transformation.
+    Cochrane-Orcutt transformation: pain is autocorrelated from one meal to
+    the next. Without whitening, the model "explains" that inertia by
+    attributing the slow drift of the pain level to innocent foods.
+    The coefficient is damped as a power of the actual time gap, since the
+    observations are not regularly spaced. Assumes `t_obs` is sorted.
+    → (y, X, Z, rho) — the first observation is consumed by the transformation.
     """
     r = y - Z @ np.linalg.lstsq(Z, y, rcond=None)[0]
     rho = float(np.clip((r[:-1] @ r[1:]) /
@@ -382,38 +384,38 @@ def residualize(y, X, Z):
 
 
 # ══════════════════════════════════════════════════════════════════
-#  Group-lasso à coefficients positifs
+#  Group lasso with non-negative coefficients
 # ══════════════════════════════════════════════════════════════════
 #  min_{beta >= 0}  1/(2n)||y - X beta||^2 + lam * sum_g sqrt(K) * ||beta_g||_2
 #
-#  Un GROUPE = un aliment, c'est-à-dire ses K coefficients de décalage. Ils
-#  entrent ou sortent du modèle ensemble : un vrai effet s'étale sur plusieurs
-#  noyaux adjacents, et un lasso ordinaire paierait la pénalité sur chacun
-#  séparément — d'où une perte de puissance.
+#  A GROUP = one food, that is, its K lag coefficients. They enter or leave
+#  the model together: a real effect spreads over several adjacent kernels,
+#  and a plain lasso would pay the penalty on each of them separately —
+#  hence a loss of power.
 #
-#  Résolution par descente par blocs sur la matrice de Gram (astuce
-#  « covariance updates » de glmnet), sous-problème de groupe par FISTA.
-#  L'opérateur proximal de  lam||.||_2 + indicatrice(. >= 0)  est le
-#  seuillage de groupe appliqué à la partie positive.
+#  Solved by block descent on the Gram matrix (glmnet's "covariance updates"
+#  trick), with the per-group subproblem handled by FISTA. The proximal
+#  operator of  lam||.||_2 + indicator(. >= 0)  is the group thresholding
+#  applied to the positive part.
 
-def _prox_groupe(v, seuil):
+def _prox_group(v, threshold):
     v = np.maximum(v, 0.0)
     n = np.sqrt(v @ v)
-    return v * max(0.0, 1.0 - seuil / n) if n > 0 else v
+    return v * max(0.0, 1.0 - threshold / n) if n > 0 else v
 
 
 def _solve_group(Gg, u, lam_g, b0, pas, n_iter=80, tol=1e-9):
-    """min_{b>=0} 1/2 b'Gg b - u'b + lam_g||b||_2, par FISTA."""
+    """min_{b>=0} 1/2 b'Gg b - u'b + lam_g||b||_2, solved by FISTA."""
     b = b0.copy()
     z = b.copy()
     t = 1.0
-    for _ in range(n_iter):
-        b_new = _prox_groupe(z - pas * (Gg @ z - u), pas * lam_g)
+    for _it in range(n_iter):
+        b_new = _prox_group(z - pas * (Gg @ z - u), pas * lam_g)
         t_new = 0.5 * (1.0 + np.sqrt(1.0 + 4.0 * t * t))
         z = b_new + ((t - 1.0) / t_new) * (b_new - b)
-        fini = np.abs(b_new - b).max() < tol
+        done = np.abs(b_new - b).max() < tol
         b, t = b_new, t_new
-        if fini:
+        if done:
             break
     return b
 
@@ -456,7 +458,7 @@ def nn_group_lasso(G, c, groups, lam, weights, group_blocks, beta=None,
     beta = np.zeros(p) if beta is None else beta.copy()
     Gbeta = G @ beta
 
-    for _ in range(max_iter):
+    for _it in range(max_iter):
         delta_max = 0.0
         for gi, idx in enumerate(groups):
             Gg, step = group_blocks[gi]
@@ -512,76 +514,75 @@ def prepare_groups(G, groups):
     return ready
 
 
-def lambda_max(c, groupes, poids):
-    """Plus petite pénalité annulant toute la solution."""
-    vals = [np.linalg.norm(np.maximum(c[idx], 0.0)) / poids[gi]
-            for gi, idx in enumerate(groupes)]
+def lambda_max(c, groups, weights):
+    """Smallest penalty that zeroes out the whole solution."""
+    vals = [np.linalg.norm(np.maximum(c[idx], 0.0)) / weights[gi]
+            for gi, idx in enumerate(groups)]
     return max(max(vals), 1e-9)
 
 
-def grille_lambda(G, c, groupes, poids, blocs_g, q_max, n_lam=N_LAMBDAS):
+def lambda_grid(G, c, groups, weights, group_blocks, q_max, n_lam=N_LAMBDAS):
     """
-    Grille de pénalités restreinte au régime PARCIMONIEUX : on ne garde que
-    les lambda pour lesquels au plus `q_max` aliments entrent dans le modèle
-    (règle de Meinshausen & Bühlmann). Sans cette borne, la fréquence de
-    sélection maximisée sur le chemin vaut ~1 pour tout le monde et la
-    sélection ne discrimine plus rien.
+    Penalty grid restricted to the SPARSE regime: only the lambdas for which
+    at most `q_max` foods enter the model are kept (Meinshausen & Bühlmann's
+    rule). Without that bound, the selection frequency maximized along the
+    path is ~1 for everyone and the selection no longer discriminates.
     """
-    chemin = lambda_max(c, groupes, poids) * np.logspace(0, -2.0, 50)
-    beta, retenues = None, []
-    for lam in chemin:
-        beta = nn_group_lasso(G, c, groupes, lam, poids, blocs_g, beta=beta)
-        actifs = sum(1 for idx in groupes if beta[idx].max() > 0)
-        if actifs == 0:
+    path = lambda_max(c, groups, weights) * np.logspace(0, -2.0, 50)
+    beta, kept = None, []
+    for lam in path:
+        beta = nn_group_lasso(G, c, groups, lam, weights, group_blocks, beta=beta)
+        active = sum(1 for idx in groups if beta[idx].max() > 0)
+        if active == 0:
             continue
-        if actifs > q_max:
+        if active > q_max:
             break
-        retenues.append(lam)
-    if not retenues:
-        retenues = [chemin[min(4, len(chemin) - 1)]]
-    if len(retenues) > n_lam:
-        idx = np.linspace(0, len(retenues) - 1, n_lam).round().astype(int)
-        retenues = [retenues[i] for i in idx]
-    return np.array(retenues)
+        kept.append(lam)
+    if not kept:
+        kept = [path[min(4, len(path) - 1)]]
+    if len(kept) > n_lam:
+        idx = np.linspace(0, len(kept) - 1, n_lam).round().astype(int)
+        kept = [kept[i] for i in idx]
+    return np.array(kept)
 
 
-def orthonormaliser(Xs, groupes):
+def orthonormalize(Xs, groups):
     """
-    Remplace les colonnes de chaque groupe par une base orthonormée du même
-    sous-espace (X_g'X_g/n = I). Le group-lasso devient alors invariant à la
-    corrélation INTERNE au groupe — c'est sa formulation correcte : sans cela
-    la pénalité est un ellipsoïde et favorise arbitrairement certains noyaux
-    de décalage. Bonus : la mise à jour de bloc a une forme fermée.
+    Replace the columns of each group by an orthonormal basis of the same
+    subspace (X_g'X_g/n = I). The group lasso then becomes invariant to the
+    correlation INTERNAL to the group — which is its correct formulation:
+    without it the penalty is an ellipsoid and arbitrarily favours some lag
+    kernels. Bonus: the block update has a closed form.
     """
     n = Xs.shape[0]
     Xq = np.zeros_like(Xs)
-    for idx in groupes:
-        U, s, _ = np.linalg.svd(Xs[:, idx], full_matrices=False)
+    for idx in groups:
+        U, s, _vt = np.linalg.svd(Xs[:, idx], full_matrices=False)
         if s.size == 0 or s[0] <= 0:
             continue
-        garde = s > s[0] * 1e-8
-        Xq[:, idx[:int(garde.sum())]] = U[:, garde] * np.sqrt(n)
+        keep = s > s[0] * 1e-8
+        Xq[:, idx[:int(keep.sum())]] = U[:, keep] * np.sqrt(n)
     return Xq
 
 
-def group_lasso_ortho(G, c, groupes, lam, poids, beta=None,
+def group_lasso_ortho(G, c, groups, lam, weights, beta=None,
                       max_iter=200, tol=1e-7):
-    """Group-lasso sur groupes orthonormés : descente par blocs, forme fermée."""
+    """Group lasso on orthonormal groups: block descent, closed form."""
     beta = np.zeros(len(c)) if beta is None else beta.copy()
     Gbeta = G @ beta
-    for _ in range(max_iter):
+    for _it in range(max_iter):
         delta_max = 0.0
-        for gi, idx in enumerate(groupes):
+        for gi, idx in enumerate(groups):
             bg = beta[idx]
             u = c[idx] - Gbeta[idx] + bg          # G_gg = I
-            norme = np.sqrt(u @ u)
-            seuil = lam * poids[gi]
-            nouveau = u * \
-                (1.0 - seuil / norme) if norme > seuil else np.zeros_like(u)
-            d = nouveau - bg
+            norm = np.sqrt(u @ u)
+            threshold = lam * weights[gi]
+            new = u * \
+                (1.0 - threshold / norm) if norm > threshold else np.zeros_like(u)
+            d = new - bg
             dmax = np.abs(d).max()
             if dmax > 0.0:
-                beta[idx] = nouveau
+                beta[idx] = new
                 Gbeta += G[:, idx] @ d
                 delta_max = max(delta_max, dmax)
         if delta_max < tol:
@@ -589,121 +590,121 @@ def group_lasso_ortho(G, c, groupes, lam, poids, beta=None,
     return beta
 
 
-def lambda_max_ortho(c, groupes, poids):
-    return max(max(np.linalg.norm(c[idx]) / poids[gi]
-                   for gi, idx in enumerate(groupes)), 1e-9)
+def lambda_max_ortho(c, groups, weights):
+    return max(max(np.linalg.norm(c[idx]) / weights[gi]
+                   for gi, idx in enumerate(groups)), 1e-9)
 
 
-def grille_lambda_ortho(G, c, groupes, poids, q_max, n_lam=N_LAMBDAS):
-    chemin = lambda_max_ortho(c, groupes, poids) * np.logspace(0, -2.0, 40)
-    beta, retenues = None, []
-    for lam in chemin:
-        beta = group_lasso_ortho(G, c, groupes, lam, poids, beta=beta)
-        actifs = sum(1 for idx in groupes if np.abs(beta[idx]).max() > 0)
-        if actifs == 0:
+def lambda_grid_ortho(G, c, groups, weights, q_max, n_lam=N_LAMBDAS):
+    path = lambda_max_ortho(c, groups, weights) * np.logspace(0, -2.0, 40)
+    beta, kept = None, []
+    for lam in path:
+        beta = group_lasso_ortho(G, c, groups, lam, weights, beta=beta)
+        active = sum(1 for idx in groups if np.abs(beta[idx]).max() > 0)
+        if active == 0:
             continue
-        if actifs > q_max:
+        if active > q_max:
             break
-        retenues.append(lam)
-    if not retenues:
-        retenues = [chemin[min(4, len(chemin) - 1)]]
-    if len(retenues) > n_lam:
-        i = np.linspace(0, len(retenues) - 1, n_lam).round().astype(int)
-        retenues = [retenues[j] for j in i]
-    return np.array(retenues)
+        kept.append(lam)
+    if not kept:
+        kept = [path[min(4, len(path) - 1)]]
+    if len(kept) > n_lam:
+        i = np.linspace(0, len(kept) - 1, n_lam).round().astype(int)
+        kept = [kept[j] for j in i]
+    return np.array(kept)
 
 
 # ══════════════════════════════════════════════════════════════════
-#  Aliments indissociables
+#  Inseparable foods
 # ══════════════════════════════════════════════════════════════════
 
-def fuse_inseparable(repas, aliments, seuil=SEUIL_JACCARD):
+def fuse_inseparable(meals, foods, threshold=JACCARD_THRESHOLD):
     """
-    Deux aliments presque toujours consommés ensemble ne sont pas séparables
-    par des données d'observation : on les fusionne en un bloc explicite plutôt
-    que de laisser le lasso en désigner un au hasard.
-    → (blocs, membres) : blocs = noms de blocs, membres = {bloc: [aliments]}
+    Two foods that are almost always eaten together cannot be separated by
+    observational data: we merge them into an explicit block rather than
+    letting the lasso pick one of them at random.
+    → (blocks, members): blocks = block names, members = {block: [foods]}
     """
-    presence = {a: set() for a in aliments}
-    for i, (_, alims) in enumerate(repas):
-        for a in alims:
+    presence = {a: set() for a in foods}
+    for i, (_t, items) in enumerate(meals):
+        for a in items:
             if a in presence:
                 presence[a].add(i)
 
-    parent = {a: a for a in aliments}
+    parent = {a: a for a in foods}
 
-    def racine(a):
+    def root_of(a):
         while parent[a] != a:
             parent[a] = parent[parent[a]]
             a = parent[a]
         return a
 
-    for i, a in enumerate(aliments):
-        for b in aliments[i + 1:]:
+    for i, a in enumerate(foods):
+        for b in foods[i + 1:]:
             inter = len(presence[a] & presence[b])
             if not inter:
                 continue
-            if inter / len(presence[a] | presence[b]) >= seuil:
-                ra, rb = racine(a), racine(b)
+            if inter / len(presence[a] | presence[b]) >= threshold:
+                ra, rb = root_of(a), root_of(b)
                 if ra != rb:
                     parent[rb] = ra
 
-    membres = defaultdict(list)
-    for a in aliments:
-        membres[racine(a)].append(a)
-    blocs, sortie = [], {}
-    for ms in membres.values():
-        nom = "+".join(sorted(ms))
-        blocs.append(nom)
-        sortie[nom] = sorted(ms)
-    blocs.sort()
-    return blocs, sortie
+    members = defaultdict(list)
+    for a in foods:
+        members[root_of(a)].append(a)
+    blocks, out = [], {}
+    for ms in members.values():
+        name = "+".join(sorted(ms))
+        blocks.append(name)
+        out[name] = sorted(ms)
+    blocks.sort()
+    return blocks, out
 
 
 # ══════════════════════════════════════════════════════════════════
-#  Analyse complète
+#  Full analysis
 # ══════════════════════════════════════════════════════════════════
 
-def analyze(observations, repas, min_occurrences=MIN_OCCURRENCES,
-            n_replicats=N_REPLICATS, seuil=SEUIL_STABILITE, q_max=None,
-            blanchir=True, positif=True, graine=0):
+def analyze(observations, meals, min_occurrences=MIN_OCCURRENCES,
+            n_replicates=N_REPLICATES, threshold=STABILITY_THRESHOLD, q_max=None,
+            whiten=True, positive=True, seed=0):
     """
     Args:
-        observations : [(instant_heures, heure_du_jour, score_douleur)]
-        repas        : [(instant_heures, [aliments normalisés])]
+        observations : [(time_hours, hour_of_day, pain_score)]
+        meals        : [(time_hours, [normalized foods])]
 
     Returns:
-        dict de résultats
+        dict of results
     """
-    rng = np.random.default_rng(graine)
+    rng = np.random.default_rng(seed)
 
     # We check the number of occurrences of each food in the meals and keep only
     # those that meet the minimum occurrence threshold. Then, we merge foods
     # that are almost always consumed together into a single block.
-    compte = defaultdict(int)
-    for _, alims in repas:
-        for a in set(alims):
-            compte[a] += 1
-    frequents = sorted(a for a, c in compte.items() if c >= min_occurrences)
-    if not frequents:
+    counts = defaultdict(int)
+    for _key, items in meals:
+        for a in set(items):
+            counts[a] += 1
+    frequent = sorted(a for a, c in counts.items() if c >= min_occurrences)
+    if not frequent:
         return {"error": _("no food reaches the minimum number of occurrences"),
-                "compte": dict(compte)}
+                "counts": dict(counts)}
 
-    blocs, members = fuse_inseparable(repas, frequents)
-    vers_bloc = {a: b for b, ms in members.items() for a in ms}
-    repas_blocs = [(t, sorted({vers_bloc[a] for a in alims if a in vers_bloc}))
-                   for t, alims in repas]
+    blocks, members = fuse_inseparable(meals, frequent)
+    to_block = {a: b for b, ms in members.items() for a in ms}
+    block_meals = [(t, sorted({to_block[a] for a in items if a in to_block}))
+                   for t, items in meals]
 
     # -- matrices -----------------------------------------------------
     t_obs = np.array([o[0] for o in observations], dtype=float)
-    heures = np.array([o[1] for o in observations], dtype=float)
+    hours = np.array([o[1] for o in observations], dtype=float)
     y = np.array([o[2] for o in observations], dtype=float)
 
-    X = build_exposition(t_obs, repas_blocs, blocs)
-    Z = build_controls(t_obs, heures)
+    X = build_exposition(t_obs, block_meals, blocks)
+    Z = build_controls(t_obs, hours)
     rho = 0.0
-    if blanchir and len(y) > 4:
-        y_b, X_b, Z_b, rho = blanchir_ar1(y, X, Z, t_obs)
+    if whiten and len(y) > 4:
+        y_b, X_b, Z_b, rho = whiten_ar1(y, X, Z, t_obs)
         y_res, X_res = residualize(y_b, X_b, Z_b)
         X, t_obs_eff = X[1:], t_obs[1:]
     else:
@@ -712,140 +713,140 @@ def analyze(observations, repas, min_occurrences=MIN_OCCURRENCES,
 
     n, K = len(y_res), len(LAG_CENTERS)
 
-    # -- aliments structurellement indétectables ---------------------
-    #  Si l'exposition à un aliment est presque entièrement absorbée par les
-    #  contrôles (aliment consommé tous les jours à heure fixe), il ne reste
-    #  aucune variation à exploiter : sa colonne résiduelle n'est que du bruit,
-    #  que la standardisation amplifierait jusqu'à le faire ressortir. On
-    #  l'écarte explicitement plutôt que de produire un résultat trompeur.
-    norme_brute = np.sqrt((X ** 2).sum(axis=0))
-    norme_res = np.sqrt((X_res ** 2).sum(axis=0))
-    part_libre = np.where(norme_brute > 1e-12, norme_res /
-                          np.maximum(norme_brute, 1e-12), 0.0)
-    informatif = part_libre.reshape(len(blocs), K).max(axis=1) >= 0.10
-    indetectables = [blocs[b] for b in np.flatnonzero(~informatif)]
-    if not informatif.any():
+    # -- structurally undetectable foods ------------------------------
+    #  If the exposure to a food is almost entirely absorbed by the controls
+    #  (a food eaten every day at a fixed time), no variation is left to
+    #  exploit: its residual column is pure noise, which standardization
+    #  would amplify until it stands out. We discard it explicitly rather
+    #  than produce a misleading result.
+    raw_norm = np.sqrt((X ** 2).sum(axis=0))
+    res_norm = np.sqrt((X_res ** 2).sum(axis=0))
+    free_share = np.where(raw_norm > 1e-12, res_norm /
+                          np.maximum(raw_norm, 1e-12), 0.0)
+    informative = free_share.reshape(len(blocks), K).max(axis=1) >= 0.10
+    undetectable = [blocks[b] for b in np.flatnonzero(~informative)]
+    if not informative.any():
         return {"error": _("no food varies enough to be tested "
                            "(diet too regular)")}
-    if not informatif.all():
-        gardes = np.flatnonzero(informatif)
-        cols = np.concatenate([np.arange(b * K, (b + 1) * K) for b in gardes])
+    if not informative.all():
+        kept_idx = np.flatnonzero(informative)
+        cols = np.concatenate([np.arange(b * K, (b + 1) * K) for b in kept_idx])
         X, X_res = X[:, cols], X_res[:, cols]
-        blocs = [blocs[b] for b in gardes]
+        blocks = [blocks[b] for b in kept_idx]
 
-    n_blocs = len(blocs)
-    echelle = np.sqrt((X_res ** 2).sum(axis=0) / n)
-    echelle[echelle < 1e-12] = 1.0
-    Xs = X_res / echelle
-    groupes = [np.arange(b * K, (b + 1) * K) for b in range(n_blocs)]
-    poids = np.full(n_blocs, np.sqrt(K))
+    n_blocks = len(blocks)
+    scale = np.sqrt((X_res ** 2).sum(axis=0) / n)
+    scale[scale < 1e-12] = 1.0
+    Xs = X_res / scale
+    groups = [np.arange(b * K, (b + 1) * K) for b in range(n_blocks)]
+    weights = np.full(n_blocks, np.sqrt(K))
 
     if q_max is None:
-        q_max = max(4, round(np.sqrt(0.8 * n_blocs)))
+        q_max = max(4, round(np.sqrt(0.8 * n_blocks)))
 
-    if positif:
+    if positive:
         G_tot = Xs.T @ Xs / n
         c_tot = Xs.T @ y_res / n
-        lambdas = grille_lambda(G_tot, c_tot, groupes, poids,
-                                prepare_groups(G_tot, groupes), q_max)
+        lambdas = lambda_grid(G_tot, c_tot, groups, weights,
+                                prepare_groups(G_tot, groups), q_max)
     else:
-        Xo = orthonormaliser(Xs, groupes)
+        Xo = orthonormalize(Xs, groups)
         G_tot = Xo.T @ Xo / n
         c_tot = Xo.T @ y_res / n
-        lambdas = grille_lambda_ortho(G_tot, c_tot, groupes, poids, q_max)
+        lambdas = lambda_grid_ortho(G_tot, c_tot, groups, weights, q_max)
 
-    # -- sélection par stabilité, blocs de jours contigus -------------
-    jour_obs = (t_obs_eff // 24).astype(int)
-    jours = np.unique(jour_obs)
-    debuts = list(range(0, len(jours), TAILLE_BLOC_JOURS))
-    n_tire = max(1, round(len(debuts) * FRACTION_SOUS_ECH))
+    # -- stability selection, contiguous day blocks -------------------
+    obs_day = (t_obs_eff // 24).astype(int)
+    days = np.unique(obs_day)
+    starts = list(range(0, len(days), DAY_BLOCK_SIZE))
+    n_drawn = max(1, round(len(starts) * SUBSAMPLE_FRACTION))
 
-    compte_sel = np.zeros((len(lambdas), n_blocs))
-    replicats_valides = 0
+    sel_count = np.zeros((len(lambdas), n_blocks))
+    valid_replicates = 0
 
-    for _ in range(n_replicats):
-        choisis = rng.choice(len(debuts), size=n_tire, replace=False)
-        jours_gardes = np.concatenate(
-            [jours[d:d + TAILLE_BLOC_JOURS] for d in (debuts[c] for c in choisis)])
-        masque = np.isin(jour_obs, jours_gardes)
-        nb = int(masque.sum())
+    for _rep in range(n_replicates):
+        chosen = rng.choice(len(starts), size=n_drawn, replace=False)
+        kept_days = np.concatenate(
+            [days[d:d + DAY_BLOCK_SIZE] for d in (starts[c] for c in chosen)])
+        mask = np.isin(obs_day, kept_days)
+        nb = int(mask.sum())
         if nb < 8:
             continue
-        replicats_valides += 1
-        Xb, yb = Xs[masque], y_res[masque]
-        if not positif:
-            Xb = orthonormaliser(Xb, groupes)
+        valid_replicates += 1
+        Xb, yb = Xs[mask], y_res[mask]
+        if not positive:
+            Xb = orthonormalize(Xb, groups)
         G = Xb.T @ Xb / nb
         c = Xb.T @ yb / nb
-        blocs_g = prepare_groups(G, groupes) if positif else None
+        group_blocks = prepare_groups(G, groups) if positive else None
         beta = None
         for li, lam in enumerate(lambdas):
-            beta = (nn_group_lasso(G, c, groupes, lam, poids, blocs_g, beta=beta)
-                    if positif else
-                    group_lasso_ortho(G, c, groupes, lam, poids, beta=beta))
-            par_bloc = np.abs(beta.reshape(n_blocs, K))
-            actifs = par_bloc.max(axis=1) > 0
-            compte_sel[li, actifs] += 1
+            beta = (nn_group_lasso(G, c, groups, lam, weights, group_blocks, beta=beta)
+                    if positive else
+                    group_lasso_ortho(G, c, groups, lam, weights, beta=beta))
+            per_block = np.abs(beta.reshape(n_blocks, K))
+            active = per_block.max(axis=1) > 0
+            sel_count[li, active] += 1
 
-    if replicats_valides == 0:
-        return {"error": _("log too short for resampling")}
+    if valid_replicates == 0:
+        return {"error": _("diary too short for resampling")}
 
-    frequences = compte_sel.max(axis=0) / replicats_valides
+    frequencies = sel_count.max(axis=0) / valid_replicates
 
-    # -- ré-ajustement non pénalisé sur les candidats ----------------
-    #  Le group-lasso étale les coefficients à l'intérieur d'un groupe (norme
-    #  L2) : son profil ne localise pas le décalage. On ré-ajuste donc sans
-    #  pénalité (NNLS) sur les seuls aliments candidats, et c'est de CE profil
-    #  qu'on tire décalage et effet, exprimés en points de douleur.
+    # -- unpenalized refit on the candidates --------------------------
+    #  The group lasso spreads the coefficients inside a group (L2 norm):
+    #  its profile does not locate the lag. We therefore refit without
+    #  penalty (NNLS) on the candidate foods only, and it is from THAT
+    #  profile that the lag and the effect are read, in pain points.
     from scipy.optimize import nnls
 
-    decalages = np.full(n_blocs, np.nan)
-    effets = np.zeros(n_blocs)
-    pics = np.zeros(n_blocs)
-    #  Le ré-ajustement doit rester PARCIMONIEUX : y verser les quasi-retenus
-    #  dilue les contributions entre colonnes corrélées et déplace le décalage
-    #  estimé. On se limite aux aliments retenus (au minimum les 2 premiers).
-    candidats = np.flatnonzero(frequences >= seuil)
-    if len(candidats) < 2:
-        candidats = np.argsort(-frequences)[:2]
-    cols = np.concatenate([np.arange(b * K, (b + 1) * K) for b in candidats])
-    coef, _ = nnls(X_res[:, cols], y_res)
-    #  Le décalage se lit sur la FONCTION DE RÉPONSE reconstruite
-    #  h(d) = somme_k coef_k * noyau_k(d), et non sur la masse des
-    #  contributions : les noyaux larges agrègent plus de repas, donc leurs
-    #  colonnes ont une moyenne plus grande, ce qui biaiserait le centroïde
-    #  vers les longs délais quel que soit le vrai décalage.
-    grille_d = np.linspace(0.0, MAX_SPAN, 400)
-    base_d = kernels_weights(grille_d)                              # (400, K)
-    for pos, b in enumerate(candidats):
+    lags = np.full(n_blocks, np.nan)
+    effects = np.zeros(n_blocks)
+    peaks = np.zeros(n_blocks)
+    #  The refit must stay SPARSE: pouring the near-selected ones in dilutes
+    #  the contributions across correlated columns and shifts the estimated
+    #  lag. We restrict it to the selected foods (at least the first two).
+    candidates = np.flatnonzero(frequencies >= threshold)
+    if len(candidates) < 2:
+        candidates = np.argsort(-frequencies)[:2]
+    cols = np.concatenate([np.arange(b * K, (b + 1) * K) for b in candidates])
+    coef, _residual = nnls(X_res[:, cols], y_res)
+    #  The lag is read off the reconstructed RESPONSE FUNCTION
+    #  h(d) = sum_k coef_k * kernel_k(d), not off the mass of the
+    #  contributions: wide kernels aggregate more meals, so their columns
+    #  have a larger mean, which would bias the centroid towards long
+    #  delays whatever the true lag.
+    d_grid = np.linspace(0.0, MAX_SPAN, 400)
+    base_d = kernels_weights(d_grid)                              # (400, K)
+    for pos, b in enumerate(candidates):
         tr = slice(pos * K, (pos + 1) * K)
-        reponse = base_d @ coef[tr]                              # (400,)
-        if reponse.max() > 1e-9:
-            decalages[b] = float(grille_d[int(np.argmax(reponse))])
-            pics[b] = float(reponse.max())
-        # coefficients estimés sur les données résiduelles (exacts, FWL),
-        # appliqués à l'exposition BRUTE → points de douleur réellement ajoutés
-        effets[b] = float((X[:, cols[tr]] * coef[tr]).mean(axis=0).sum())
+        response = base_d @ coef[tr]                              # (400,)
+        if response.max() > 1e-9:
+            lags[b] = float(d_grid[int(np.argmax(response))])
+            peaks[b] = float(response.max())
+        # coefficients estimated on the residualized data (exact, FWL),
+        # applied to the RAW exposure → pain points actually added
+        effects[b] = float((X[:, cols[tr]] * coef[tr]).mean(axis=0).sum())
 
-    retenus = np.flatnonzero(frequences >= seuil)
+    selected = np.flatnonzero(frequencies >= threshold)
 
     return {
-        "blocs": blocs,
-        "membres": membres,
-        "frequences": frequences,
-        "decalages": decalages,
-        "effets": effets,
-        "pics": pics,
+        "blocks": blocks,
+        "members": members,
+        "frequencies": frequencies,
+        "lags": lags,
+        "effects": effects,
+        "peaks": peaks,
         "occurrences": np.array([
-            sum(1 for _, al in repas_blocs if b in al) for b in blocs]),
-        "retenus": retenus,
+            sum(1 for _, al in block_meals if b in al) for b in blocks]),
+        "selected": selected,
         "n_observations": n,
         "rho_ar1": rho,
-        "n_jours": len(jours),
-        "n_replicats": replicats_valides,
+        "n_days": len(days),
+        "n_replicates": valid_replicates,
         "lambdas": lambdas,
         "q_max": q_max,
-        "seuil": seuil,
-        "ecartes": sorted(a for a, c in compte.items() if c < min_occurrences),
-        "indetectables": indetectables,
+        "threshold": threshold,
+        "discarded": sorted(a for a, c in counts.items() if c < min_occurrences),
+        "undetectable": undetectable,
     }

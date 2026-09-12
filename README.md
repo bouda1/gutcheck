@@ -35,7 +35,7 @@ uv pip install pytest
 To launch the tests, run:
 
 ```bash
-pytest test_gutcheck_pytest.py
+pytest test_gutcheck.py
 ```
 
 # gutcheck — detecting foods that trigger pain
@@ -96,7 +96,7 @@ and would bias the delay upwards.
 
 ## Validation
 
-`python gutcheck.py --valider` measures performance on synthetic diaries whose
+`python gutcheck.py --validate` measures performance on synthetic diaries whose
 culprits are **known**: 3 culprits among some 32 foods, lags of 3 h / 6 h / 26 h,
 noisy and autocorrelated pain, foods tied to the time of the meal, and one
 inseparable pair.
@@ -140,10 +140,10 @@ first.
 ```
 python gutcheck.py journal.csv         analyse a CSV diary
 python gutcheck.py journal.ods [name]  analyse a Calc workbook ([name] = sheet)
-python gutcheck.py --exemple f.ods     write a synthetic test diary
-python gutcheck.py --valider           measure performance
-python gutcheck.py --aide-format       expected file format
-python test_gutcheck.py                regression tests
+python gutcheck.py --example f.ods     write a synthetic test diary
+python gutcheck.py --validate          measure performance
+python gutcheck.py --format-help       expected file format
+pytest                                 regression tests
 ```
 
 Two formats are accepted, whichever you prefer: **CSV** or a **LibreOffice Calc
@@ -176,7 +176,8 @@ Two data-entry tips that matter more than the algorithm does:
 | `model.py` | exposure, controls, group lasso, stability selection |
 | `spreadsheet.py` | reading and writing `.ods` workbooks (standard library) |
 | `simu.py` | generator of diaries with known culprits, evaluation |
-| `test_gutcheck.py` | regression tests (`python test_gutcheck.py`) |
+| `test_gutcheck.py` | regression tests (`pytest`) |
+| `i18n.py` | translation helpers (gettext); `locales/` holds the catalogues |
 
 Dependencies: `numpy`, `scipy`.
 

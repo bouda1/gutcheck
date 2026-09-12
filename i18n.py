@@ -15,12 +15,27 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 # i18n.py
-import locale
 import gettext
+import locale
+import os
 
-lang_code = locale.getlocale()[0] or 'en_EN.UTF-8'
-lang_code = lang_code.split('_')[0] # fr_FR => fr
+lang_code = os.environ.get("GUTCHECK_LANG") or locale.getlocale()[0] or "en"
+lang_code = lang_code.split(".")[0].split("_")[0]  # fr_FR.UTF-8 => fr
 
-lang = gettext.translation("gutcheck", localedir="locales", languages=[lang_code], fallback=True)
+LANG_CODE = lang_code
+
+LOCALE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "locales")
+
+lang = gettext.translation("gutcheck", localedir=LOCALE_DIR,
+                           languages=[lang_code], fallback=True)
 _ = lang.gettext
 n_ = lang.ngettext
+
+
+def N_(message):
+    """Mark a string for extraction without translating it here.
+
+    Used for literals stored in tables (food catalogues, ...) that are only
+    translated later, through `_()`, once the actual value is known.
+    """
+    return message
