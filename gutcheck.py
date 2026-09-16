@@ -28,10 +28,13 @@ and several possible culprits.
   python gutcheck.py --example f.ods    same, in LibreOffice Calc format
   python gutcheck.py --format-help      expected file format
 
-CSV format: date,time,meal,foods,pain
+CSV format: date,time,meal,foods,medications,pain
   - `foods`: separated by ";"; leave blank for a row that only records
     pain (strongly recommended: recording pain ALSO between meals is
     what makes it possible to separate the lag from the meal time);
+  - `medications`: separated by ";"; leave blank for a row that only records
+    pain. Looked for as a RELIEVER: its peak and effect are reported
+    negatively, as pain points removed;
   - `pain`:  0-10; leave blank for a meal with no pain reading;
   - `time`:  HH:MM, defaults to 12:00.
 """
@@ -47,7 +50,8 @@ from i18n import LANG_CODE, _, n_
 from model import MIN_OCCURRENCES, STABILITY_THRESHOLD, analyze, normalize
 from spreadsheet import normalize_header, read_ods
 
-COLUMNS = (_("date"), _("time"), _("meal"), _("foods"), _("pain"))
+COLUMNS = (_("date"), _("time"), _("meal"), _("foods"), _("medications"),
+           _("pain"))
 
 
 def read_lines(file, sheet=None):
@@ -74,6 +78,8 @@ def read_lines(file, sheet=None):
                 normalize_header(_("time")): "time",
                 normalize_header(_("foods")): "foods",
                 normalize_header(_("meal")): "meal",
+                normalize_header(_("medications")): "medications",
+                normalize_header(_("sleep")): "sleep",
                 normalize_header(_("pain")): "pain",
             }
 
@@ -94,15 +100,18 @@ def load_diary(file, sheet=None):
         file (str): path to the diary file (CSV or ODS)
         sheet (str, optional): sheet name for ODS files; defaults to the first sheet
     Returns:
-        tuple: (observations, meals, warnings)
+        tuple: (observations, meals, medications, warnings)
             observations: list of tuples (hours_since_first, hour_of_day, pain_value)
             meals: list of tuples (hours_since_first, list_of_foods)
+            medications: list of tuples (hours_since_first, list_of_medications)
             warnings: list of warning messages
     """
     lines, warnings, no_time = [], [], 0
     raw = read_lines(file, sheet)
+    #  `medications` is optional: a diary that tracks food only is perfectly
+    #  valid, and must not be warned about.
     missing = [c for c in ("date", "foods", "pain")
-                  if raw and c not in raw[0]]
+               if raw and c not in raw[0]]
     if missing:
         warnings.append(_("missing column(s): %(missing)s — expected: %(expected)s")
                         % {"missing": ', '.join(missing),
@@ -132,6 +141,9 @@ def load_diary(file, sheet=None):
         foods = [normalize(a) for a in (line.get("foods") or "").split(";")]
         foods = sorted({a for a in foods if a})
 
+        medications = [normalize(a) for a in (line.get("medications") or "").split(";")]
+        medications = sorted({a for a in medications if a})
+
         txt_pain = (line.get("pain") or "").strip()
         pain_value = None
         if txt_pain:
@@ -140,7 +152,7 @@ def load_diary(file, sheet=None):
             except ValueError:
                 warnings.append(_("line {}: pain '{}' ignored").format(
                     num, txt_pain))
-        lines.append((ts, foods, pain_value))
+        lines.append((ts, foods, medications, pain_value))
 
     if no_time:
         warnings.append(n_("%(n)s line without a time → 12:00 assumed; "
@@ -149,7 +161,7 @@ def load_diary(file, sheet=None):
                            "a wrong time degrades the lag estimate",
                            no_time) % {"n": no_time})
     if not lines:
-        return [], [], warnings + [_("no usable line")]
+        return [], [], [], warnings + [_("no usable line")]
 
     #  Chronological sort: the AR(1) whitening and the splitting into blocks of
     #  days assume ordered readings, and nothing guarantees the CSV is sorted.
@@ -157,15 +169,17 @@ def load_diary(file, sheet=None):
     origin = lines[0][0]
     to_hours = lambda t: (t - origin).total_seconds() / 3600.0
 
-    meals = [(to_hours(t), a) for t, a, _p in lines if a]
+    meals = [(to_hours(t), a) for t, a, _m, _p in lines if a]
+    medications = [(to_hours(t), m) for t, _a, m, _p in lines if m]
     observations = [(to_hours(t), t.hour + t.minute / 60.0, d)
-                    for t, _f, d in lines if d is not None]
-    return observations, meals, warnings + suspicious_names(meals)
+                    for t, _f, _m, d in lines if d is not None]
+    return (observations, meals, medications,
+            warnings + suspicious_names(meals + medications))
 
 
-def suspicious_names(meals, max_distance=1):
-    """Report food names that are nearly identical (likely typos)."""
-    names = sorted({a for _, items in meals for a in items})
+def suspicious_names(entries, max_distance=1):
+    """Report food or medication names that are nearly identical (typos)."""
+    names = sorted({a for _, items in entries for a in items})
     suspects = []
     for i, a in enumerate(names):
         for b in names[i + 1:]:
@@ -220,20 +234,27 @@ def display(res, warnings):
     threshold = res["threshold"]
     selected = set(res["selected"].tolist())
 
-    print(f"  {_('Food'):<24} {_('Stability'):>10} {_('Lag'):>9} "
-                f"{_('Peak'):>7} {_('Effect'):>7}  {_('n meals'):>7}")
-    print(f"  {'-'*24} {'-'*10} {'-'*9} {'-'*7} {'-'*7}  {'-'*7}")
+    #  A medication carries sign -1: its peak and effect are pain points
+    #  REMOVED, and are printed as negative values.
+    signs = res.get("signs", np.ones(len(res["blocks"])))
+
+    print(f"  {_('Food or drug'):<24} {_('Stability'):>10} {_('Lag'):>9} "
+                f"{_('Peak'):>7} {_('Effect'):>7}  {_('n intakes'):>9}")
+    print(f"  {'-'*24} {'-'*10} {'-'*9} {'-'*7} {'-'*7}  {'-'*9}")
     for i in order[:12]:
         f = res["frequencies"][i]
         if f < 0.15:
             break
         lag = res["lags"][i]
         mark = "◆" if i in selected else " "
+        name = res["blocks"][i]
+        if signs[i] < 0:
+            name = f"{name} ℞"
         lag_txt = f"{lag:4.0f} h" if not np.isnan(lag) else "   –"
-        peak_txt = f"+{res['peaks'][i]:.1f}" if res["peaks"][i] > 0 else "   –"
-        effect_txt = f"+{res['effects'][i]:.2f}" if res["effects"][i] > 0 else "   –"
-        print(f" {mark}{res['blocks'][i]:<24} {f:>9.0%} {lag_txt:>9} "
-              f"{peak_txt:>7} {effect_txt:>7}  {res['occurrences'][i]:>7}")
+        peak_txt = (f"{res['peaks'][i]:+.1f}" if res["peaks"][i] != 0 else "   –")
+        effect_txt = (f"{res['effects'][i]:+.2f}" if res["effects"][i] != 0 else "   –")
+        print(f" {mark}{name:<24} {f:>9.0%} {lag_txt:>9} "
+              f"{peak_txt:>7} {effect_txt:>7}  {res['occurrences'][i]:>9}")
 
     print(_("\n  ◆ = selected (stability ≥ %(threshold).0f%%)") % {
         "threshold": threshold * 100})
@@ -243,6 +264,9 @@ def display(res, warnings):
     print(_("  Peak      : pain points added at the top, for one intake."))
     print(_("  Effect    : average attributable pain points over the whole"))
     print(_("              diary (≈ expected gain if the food is removed)."))
+    if (signs < 0).any():
+        print(_("  ℞         : medication. Its peak and effect are counted"))
+        print(_("              NEGATIVELY: they are pain points removed."))
 
     multiple = [b for b in res["blocks"] if "+" in b]
     if multiple:
@@ -264,7 +288,11 @@ def display(res, warnings):
                     + ('…' if len(res['discarded']) > 15 else ''),
         })
 
-    top = [res["blocks"][i] for i in order if res["frequencies"][i] >= threshold][:3]
+    #  Only FOODS are proposed for an elimination trial. Never suggest
+    #  stopping a medication: that is a medical decision, and the diary
+    #  cannot support it.
+    top = [res["blocks"][i] for i in order
+           if res["frequencies"][i] >= threshold and signs[i] > 0][:3]
     print(f"\n{'-'*72}")
     if top:
         print(_("  Next step — observation alone doesn't prove causality."))
@@ -287,13 +315,18 @@ def display(res, warnings):
 FORMAT_HELP = _("""
 Two formats accepted: CSV, or LibreOffice Calc spreadsheet (.ods).
 
-Expected columns — date,time,meal,foods,pain
+Expected columns — date,time,meal,foods,medications,pain
 
-  date,time,meal,foods,pain
-  2026-08-31,08:00,breakfast,eggs; bread; coffee,2
-  2026-08-31,11:00,,,4              ← pain reading alone
-  2026-08-31,12:30,lunch,rice; chicken; vegetables,4
-  2026-08-31,19:00,dinner,soup; cheese,
+  date,time,meal,foods,medications,pain
+  2026-08-31,08:00,breakfast,eggs; bread; coffee,antacid,2
+  2026-08-31,11:00,,,,4             ← pain reading alone
+  2026-08-31,12:30,lunch,rice; chicken; vegetables,,4
+  2026-08-31,19:00,dinner,soup; cheese,antacid,
+
+The `medications` column is optional and follows the same rules as `foods`
+(separated by ";"). It is treated the other way round, though: a food is
+looked for as a TRIGGER, a medication as a RELIEVER, and its peak and effect
+are reported as negative numbers — pain points removed.
 
 Input tolerances:
   - headers  : case, accents and suffixes ignored ("Pain (0-10)" works too);
@@ -302,7 +335,7 @@ Input tolerances:
   - in an .ods file, date/time cells typed by Calc are read at their
     actual value, not their local display.
 
-Two tips that matter more than the algorithm:
+Three tips that matter more than the algorithm:
 
   1. Record pain OUTSIDE of meals (empty foods columns), every
      3-4 hours. If pain is only noted at meals, "12 h offset
@@ -312,6 +345,10 @@ Two tips that matter more than the algorithm:
   2. VARY your diet. A food eaten every day without exception is
      undetectable no matter its effect: there is no comparison
      day available.
+
+  3. The same holds for a medication: one taken at every single meal
+     cannot be assessed. Its missed doses are what make its effect
+     measurable, so record them honestly — a blank is data.
 """)
 
 
@@ -368,7 +405,7 @@ def main():
         return
 
     sheet = args[1] if len(args) > 1 else None
-    observations, meals, warnings = load_diary(args[0], sheet)
+    observations, meals, medications, warnings = load_diary(args[0], sheet)
     if len(observations) < 10 or len(meals) < 5:
         print(_("\n  Diary too short: %(obs)s pain entries, "
                 "%(meals)s meals.") % {
@@ -378,7 +415,8 @@ def main():
         print(_("  You need at least about ten days. See --format-help.\n"))
         sys.exit(1)
 
-    res = analyze(observations, meals, threshold=STABILITY_THRESHOLD)
+    res = analyze(observations, meals, medications,
+                  threshold=STABILITY_THRESHOLD)
     display(res, warnings)
 
 

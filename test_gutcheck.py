@@ -39,17 +39,17 @@ from model import (
     prepare_groups,
     fuse_inseparable,
 )
-from simu import generate
+from simu import DEFAULT_MEDICATION, generate
 from spreadsheet import normalize_header, read_ods, read_sheet, write_ods
 
 #  One sample diary, shared by every .ods test: four data rows covering a
 #  typed date, a typed time, a numeric cell and an empty trailing cell.
 SAMPLE_ROWS = [
-    [_("date"), _("time"), _("meal"), _("foods"), "Pain (0-10)"],
-    ["2026-03-01", "08:00", "breakfast", "Coffee; bread", 2],
-    ["2026-03-01", "11:00", "", "", 4],
-    ["2026-03-01", "12:30", "lunch", "rice; chicken", ""],
-    ["2026-03-02", "19:00", "dinner", "soup", 5],
+    [_("date"), _("time"), _("meal"), _("foods"), _("medications"), "Pain (0-10)"],
+    ["2026-03-01", "08:00", "breakfast", "Coffee; bread", "antacid", 2],
+    ["2026-03-01", "11:00", "", "", "", 4],
+    ["2026-03-01", "12:30", "lunch", "rice; chicken", "", ""],
+    ["2026-03-02", "19:00", "dinner", "soup", "", 5],
 ]
 
 
@@ -171,18 +171,19 @@ def test_fusion():
     assert "rice" in blocks, "independent foods should not be fused"
 
 def test_read_csv():
-    content = """{date},{time},{meal},{foods},{pain}
-2026-03-02,19:00,dinner,soup,5
-2026-03-01,,breakfast,Coffee; bread,2
-2026-03-01,12:30,lunch,rice,
-2026-03-01,15:00,,,4
-2026-03-01,16:00,,,abc
-not-a-date,08:00,,,3
+    content = """{date},{time},{meal},{foods},{medications},{pain}
+2026-03-02,19:00,dinner,soup,,5
+2026-03-01,,breakfast,Coffee; bread,Antacid,2
+2026-03-01,12:30,lunch,rice,,
+2026-03-01,15:00,,,,4
+2026-03-01,16:00,,,,abc
+not-a-date,08:00,,,,3
 """.format(
            date=_("date"),
            time=_("time"),
            meal=_("meal"),
            foods=_("foods"),
+           medications=_("medications"),
            pain=_("pain"),
        )
 
@@ -190,7 +191,7 @@ not-a-date,08:00,,,3
                                      encoding="utf-8") as f:
         f.write(content)
         path = f.name
-    obs, rep, warnings = load_diary(path)
+    obs, rep, _meds, warnings = load_diary(path)
     os.unlink(path)
     assert [o[0] for o in obs] == sorted(o[0] for o in obs), "observation times should be sorted"
     assert len(rep) == 3, f"3 meals read (got {len(rep)})"
@@ -200,6 +201,27 @@ not-a-date,08:00,,,3
     assert any("abc" in a for a in warnings), "unreadable pain value should be reported"
     assert any("not-a-date" in a for a in warnings), "unreadable date should be reported"
     assert ["bread", "coffee"] == rep[0][1], f"first meal foods should be normalized (got {rep[0][1]})"
+
+
+def test_read_medications():
+    content = """{date},{time},{foods},{medications},{pain}
+2026-03-01,08:00,bread,Antacid; Iron,2
+2026-03-01,12:30,rice,,3
+2026-03-01,19:00,soup,antacid,4
+""".format(date=_("date"), time=_("time"), foods=_("foods"),
+           medications=_("medications"), pain=_("pain"))
+    with tempfile.NamedTemporaryFile("w", suffix=".csv", delete=False,
+                                     encoding="utf-8") as f:
+        f.write(content)
+        path = f.name
+    _obs, meals, meds, warnings = load_diary(path)
+    os.unlink(path)
+    assert len(meals) == 3, f"3 meals read (got {len(meals)})"
+    assert [m[1] for m in meds] == [["antacid", "iron"], ["antacid"]], \
+        f"medications are normalized and kept apart from foods (got {meds})"
+    assert all("antacid" not in items for _t, items in meals), \
+        "a medication never lands in the foods series"
+    assert not warnings, f"a diary with medications raises no warning ({warnings})"
 
 def test_spreadsheet(ods_diary):
     assert normalize_header("  Pain (0-10) ") == "pain", "a decorated header is normalized"
@@ -214,11 +236,13 @@ def test_spreadsheet(ods_diary):
     assert d[0]["pain"] == "2", "a numeric cell has no spurious decimal part"
     assert d[2]["pain"] == "", "an empty trailing cell is an empty string"
 
-    obs_o, rep_o, _dumb = load_diary(ods_diary)
+    obs_o, rep_o, meds_o, _dumb = load_diary(ods_diary)
     assert len(rep_o) == 3 and len(obs_o) == 3, \
         "an .ods diary loads like its CSV equivalent"
     assert rep_o[0][1] == ["bread", "coffee"], \
         "names are normalized when read from the workbook"
+    assert meds_o == [(0.0, ["antacid"])], \
+        f"the medications column is read as its own series (got {meds_o})"
 
 
 def test_ods_package(ods_diary):
@@ -280,9 +304,9 @@ def test_ods_compressed_cells(tmp_path):
 def test_end_to_end_detection():
     #  56 days under the recommended protocol (6 readings a day away from
     #  meals): the three planted culprits must come out of the analysis.
-    obs, meals, truth = generate(n_days=56, seed=0,
-                                 reading_hours=[7, 10, 13, 16, 19, 22])
-    res = analyze(obs, meals, n_replicates=80, seed=0)
+    obs, meals, meds, truth = generate(n_days=56, seed=0,
+                                       reading_hours=[7, 10, 13, 16, 19, 22])
+    res = analyze(obs, meals, meds, n_replicates=80, seed=0)
     selected = {res["blocks"][i] for i in res["selected"]}
 
     assert set(truth) <= selected, \
@@ -293,3 +317,45 @@ def test_end_to_end_detection():
         est = res["lags"][res["blocks"].index(name)]
         assert abs(est - true_lag) <= 8, \
             f"lag of {name}: {est:.0f} h estimated vs {true_lag:.0f} h actual"
+
+
+@pytest.mark.slow
+def test_medication_is_credited_with_relief():
+    #  Same 56-day protocol, plus a medication taken at meal times with a
+    #  quarter of the doses missed and a genuine relieving effect. Its
+    #  kernels are negated inside analyze(), so it must come out selected
+    #  with a NEGATIVE peak and effect, while the food culprits stay positive.
+    obs, meals, meds, _truth = generate(n_days=56, seed=0,
+                                       reading_hours=[7, 10, 13, 16, 19, 22],
+                                       medication=DEFAULT_MEDICATION)
+    med = normalize(DEFAULT_MEDICATION[0])
+    assert meds, "the generator produced medication intakes"
+    assert 0 < len(meds) < len(meals), "some doses are missed, some are taken"
+
+    res = analyze(obs, meals, meds, n_replicates=80, seed=0)
+    i = res["blocks"].index(med)
+    selected = {res["blocks"][b] for b in res["selected"]}
+
+    assert res["signs"][i] == -1, "a medication block carries the negative sign"
+    assert med in selected, \
+        f"the medication is selected (stability {res['frequencies'][i]:.0%})"
+    assert res["peaks"][i] < 0, "its peak counts pain points REMOVED"
+    assert res["effects"][i] < 0, "so does its average effect"
+
+    for name in selected - {med}:
+        j = res["blocks"].index(name)
+        assert res["signs"][j] == 1 and res["effects"][j] >= 0, \
+            f"a food stays a trigger ({name})"
+
+
+def test_medication_is_never_fused_with_a_food():
+    #  A medication taken at exactly the meals where one food is eaten would
+    #  otherwise be merged into a single block, which cannot carry two signs.
+    meals = [(float(i), ["bread"]) for i in range(12)]
+    meds = [(float(i), ["antacid"]) for i in range(12)]
+    obs = [(float(i) + 2.0, (i + 2) % 24, 5.0) for i in range(12)]
+    res = analyze(obs, meals, meds, n_replicates=5, seed=0)
+    assert "bread" in res["blocks"] and "antacid" in res["blocks"], \
+        f"both stay separate blocks (got {res['blocks']})"
+    assert not any("+" in b for b in res["blocks"]), \
+        "no block mixes a food and a medication"

@@ -174,8 +174,10 @@ def read_ods(path, sheet=None):
     replacements = {
         normalize_header(_("date")): "date",
         normalize_header(_("time")): "time",
-        normalize_header(_("foods")): "foods",
         normalize_header(_("meal")): "meal",
+        normalize_header(_("foods")): "foods",
+        normalize_header(_("medications")): "medications",
+        normalize_header(_("sleep")): "sleep",
         normalize_header(_("pain")): "pain",
     }
 
@@ -187,6 +189,59 @@ def read_ods(path, sheet=None):
         line = line + [""] * (len(headers) - len(line))
         retval.append(dict(zip(headers, line)))
     return retval
+
+
+def read_ods_to_dataframe(path, sheet=None, parse_dates=True):
+    """
+    Read an ODS file and return its content as a pandas DataFrame.
+
+    The columns are the normalized headers of `read_ods()`; the rows keep the
+    order of the sheet. Unlike the rest of this module, this function requires
+    pandas, which is therefore imported lazily: gutcheck stays usable without
+    it.
+
+    Args:
+        path (str): Path to the ODS file.
+        sheet (str, optional): Name of the sheet to read. Defaults to None
+            (first sheet).
+        parse_dates (bool, optional): If True (default), the "date" column is
+            converted to datetime64 and the "time" column to a time-of-day
+            timedelta. Columns whose values are all numeric are converted to
+            a numeric dtype in any case.
+
+    Returns:
+        pandas.DataFrame: the sheet content, with normalized column names.
+    """
+    try:
+        import pandas as pd
+    except ImportError as exc:      # pragma: no cover - depends on the install
+        raise ImportError(
+            _("pandas is required by read_ods_to_dataframe(); "
+              "install it with 'pip install pandas'")) from exc
+
+    rows = read_ods(path, sheet)
+    if not rows:
+        return pd.DataFrame()
+
+    # dict.fromkeys() keeps the column order of the sheet while tolerating
+    # rows that would not all carry the same keys.
+    columns = list(dict.fromkeys(k for row in rows for k in row))
+    frame = pd.DataFrame(rows, columns=columns).replace("", pd.NA)
+
+    for name in columns:
+        column = frame[name]
+        if parse_dates and name == "date":
+            frame[name] = pd.to_datetime(column, errors="coerce")
+        elif parse_dates and name == "time":
+            frame[name] = pd.to_timedelta(
+                column.where(column.isna(), column.astype(str) + ":00"),
+                errors="coerce")
+        else:
+            numeric = pd.to_numeric(column, errors="coerce")
+            if numeric.notna().sum() == column.notna().sum():
+                frame[name] = numeric
+
+    return frame
 
 
 # ══════════════════════════════════════════════════════════════════

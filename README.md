@@ -94,6 +94,30 @@ and would bias the delay upwards.
   temporary elimination can test them.
 - **Discarded foods**: fewer than 3 occurrences.
 
+## Medications
+
+An optional `medications` column is read alongside `foods`, with the same
+`;` separator. It is modelled the other way round: a food is looked for as a
+**trigger**, a medication as a **reliever**. Concretely, the lag kernels of a
+medication are negated, which is exactly a `beta <= 0` constraint on its raw
+exposure — the non-negative solver is left untouched. Its peak and effect are
+then reported as negative numbers, pain points *removed*, and the row is
+marked `℞`.
+
+Two consequences worth knowing:
+
+- A medication is never merged into a food block by the inseparability
+  detection: a block sums its members into the same columns, and the two
+  carry opposite signs.
+- **Missed doses are the data.** A medication taken at every single meal
+  cannot be assessed, exactly like a food eaten every day. On synthetic
+  56-day diaries with a real 2-point effect, detection needs roughly 15-20 %
+  of doses missed; below 10 % the effect stays under the selection threshold.
+  Record the blanks honestly.
+
+The elimination advice at the end of the report only ever proposes foods.
+Stopping a medication is a medical decision, and a diary cannot support it.
+
 ## Validation
 
 `python gutcheck.py --validate` measures performance on synthetic diaries whose
@@ -152,21 +176,25 @@ Headers tolerate formatting (`Douleur (0-10)` → `douleur`), dates accept the
 usual formats (`31/08/2026` as well as `2026-08-31`), and date/time cells typed
 by Calc are read back at their canonical value rather than their local display.
 
-Columns: `date, heure, repas, aliments, douleur`
-(date, time, meal, foods, pain)
+Columns: `date, time, meal, foods, medications, pain` — written in the
+language of the run, so a French diary uses
+`date, heure, repas, aliments, médicaments, douleur`. `meal` and
+`medications` are optional.
 
 ```
-2026-08-31,08:00,petit_dejeuner,oeufs; pain; cafe,2
-2026-08-31,11:00,,,4              ← pain entry on its own
-2026-08-31,12:30,dejeuner,riz; poulet; legumes,4
-2026-08-31,19:00,diner,soupe; fromage,
+2026-08-31,08:00,breakfast,eggs; bread; coffee,antacid,2
+2026-08-31,11:00,,,,4             ← pain entry on its own
+2026-08-31,12:30,lunch,rice; chicken; vegetables,,4
+2026-08-31,19:00,dinner,soup; cheese,antacid,
 ```
 
-Two data-entry tips that matter more than the algorithm does:
+Three data-entry tips that matter more than the algorithm does:
 
 1. **Record pain every 3–4 h**, including away from meals (see above).
 2. **Vary your diet.** A food eaten every single day is undetectable whatever its
    effect: there is no comparison day.
+3. **Note the doses you missed.** A medication taken without exception is just
+   as undetectable; a blank cell is data.
 
 ## Files
 
