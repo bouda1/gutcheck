@@ -665,16 +665,25 @@ def fuse_inseparable(meals, foods, threshold=JACCARD_THRESHOLD):
 #  Full analysis
 # ══════════════════════════════════════════════════════════════════
 
-def analyze(observations, meals, min_occurrences=MIN_OCCURRENCES,
+def analyze(observations, meals, medications=(), min_occurrences=MIN_OCCURRENCES,
             n_replicates=N_REPLICATES, threshold=STABILITY_THRESHOLD, q_max=None,
             whiten=True, positive=True, seed=0):
     """
     Args:
         observations : [(time_hours, hour_of_day, pain_score)]
         meals        : [(time_hours, [normalized foods])]
+        medications  : [(time_hours, [normalized medications])]
+
+    Foods are looked for as TRIGGERS (a non-negative coefficient adds pain).
+    Medications are looked for as RELIEVERS: their exposure columns are
+    negated, so a non-negative coefficient on the negated column means the
+    intake REMOVES pain. That is exactly a `beta <= 0` constraint on the raw
+    column, which leaves the whole non-negative solver untouched.
 
     Returns:
-        dict of results
+        dict of results. "signs" gives +1 per food block and -1 per
+        medication block; "peaks" and "effects" carry that sign, so a
+        medication shows up with negative values.
     """
     rng = np.random.default_rng(seed)
 
@@ -685,22 +694,43 @@ def analyze(observations, meals, min_occurrences=MIN_OCCURRENCES,
     for _key, items in meals:
         for a in set(items):
             counts[a] += 1
+    med_counts = defaultdict(int)
+    for _key, items in medications:
+        for a in set(items):
+            med_counts[a] += 1
+
     frequent = sorted(a for a, c in counts.items() if c >= min_occurrences)
-    if not frequent:
+    blocks, members = fuse_inseparable(meals, frequent)
+
+    #  A medication is never merged with a food: a block sums the exposures of
+    #  its members into the SAME columns, and the two carry opposite signs.
+    #  A name used both as a food and as a medication stays a food.
+    frequent_meds = sorted(a for a, c in med_counts.items()
+                           if c >= min_occurrences and a not in set(blocks))
+    if not frequent and not frequent_meds:
         return {"error": _("no food reaches the minimum number of occurrences"),
                 "counts": dict(counts)}
 
-    blocks, members = fuse_inseparable(meals, frequent)
+    signs = np.array([1.0] * len(blocks) + [-1.0] * len(frequent_meds))
+    for m in frequent_meds:
+        members[m] = [m]
+    blocks = blocks + frequent_meds
+
     to_block = {a: b for b, ms in members.items() for a in ms}
-    block_meals = [(t, sorted({to_block[a] for a in items if a in to_block}))
-                   for t, items in meals]
+    med_set = set(frequent_meds)
+    events = [(t, sorted({to_block[a] for a in items
+                          if a in to_block and a not in med_set}))
+              for t, items in meals]
+    events += [(t, sorted(set(items) & med_set)) for t, items in medications]
 
     # -- matrices -----------------------------------------------------
     t_obs = np.array([o[0] for o in observations], dtype=float)
     hours = np.array([o[1] for o in observations], dtype=float)
     y = np.array([o[2] for o in observations], dtype=float)
 
-    X = build_exposition(t_obs, block_meals, blocks)
+    X = build_exposition(t_obs, events, blocks)
+    #  Sign flip of the medication columns (see the docstring).
+    X = X * np.repeat(signs, len(LAG_CENTERS))
     Z = build_controls(t_obs, hours)
     rho = 0.0
     if whiten and len(y) > 4:
@@ -733,6 +763,7 @@ def analyze(observations, meals, min_occurrences=MIN_OCCURRENCES,
         cols = np.concatenate([np.arange(b * K, (b + 1) * K) for b in kept_idx])
         X, X_res = X[:, cols], X_res[:, cols]
         blocks = [blocks[b] for b in kept_idx]
+        signs = signs[kept_idx]
 
     n_blocks = len(blocks)
     scale = np.sqrt((X_res ** 2).sum(axis=0) / n)
@@ -823,7 +854,7 @@ def analyze(observations, meals, min_occurrences=MIN_OCCURRENCES,
         response = base_d @ coef[tr]                              # (400,)
         if response.max() > 1e-9:
             lags[b] = float(d_grid[int(np.argmax(response))])
-            peaks[b] = float(response.max())
+            peaks[b] = float(signs[b] * response.max())
         # coefficients estimated on the residualized data (exact, FWL),
         # applied to the RAW exposure → pain points actually added
         effects[b] = float((X[:, cols[tr]] * coef[tr]).mean(axis=0).sum())
@@ -833,12 +864,13 @@ def analyze(observations, meals, min_occurrences=MIN_OCCURRENCES,
     return {
         "blocks": blocks,
         "members": members,
+        "signs": signs,
         "frequencies": frequencies,
         "lags": lags,
         "effects": effects,
         "peaks": peaks,
         "occurrences": np.array([
-            sum(1 for _, al in block_meals if b in al) for b in blocks]),
+            sum(1 for _, al in events if b in al) for b in blocks]),
         "selected": selected,
         "n_observations": n,
         "rho_ar1": rho,
@@ -847,6 +879,7 @@ def analyze(observations, meals, min_occurrences=MIN_OCCURRENCES,
         "lambdas": lambdas,
         "q_max": q_max,
         "threshold": threshold,
-        "discarded": sorted(a for a, c in counts.items() if c < min_occurrences),
+        "discarded": sorted(a for a, c in list(counts.items())
+                            + list(med_counts.items()) if c < min_occurrences),
         "undetectable": undetectable,
     }

@@ -66,6 +66,13 @@ INSEPARABLES = [(N_("garlic"), N_("onion"))]
 DEFAULT_CULPRITS = [(N_("cheese"), 26.0, 2.2), (N_("wine"), 6.0, 2.0),
                     (N_("chilli"), 3.0, 2.4)]
 
+#  A medication taken at meal times, with a RELIEVING effect (negative
+#  amplitude) and a share of forgotten doses. The misses are what makes the
+#  effect estimable at all: without a single meal without it, there is no
+#  comparison point — exactly the situation of a food eaten every day.
+#  (name, lag in hours, amplitude, probability the dose is actually taken)
+DEFAULT_MEDICATION = (N_("antacid"), 5.0, -1.5, 0.75)
+
 
 def _food(name):
     """Translated, normalized name of a catalogue food."""
@@ -83,10 +90,13 @@ def response(delays, center, width=7.0):
 
 def generate(n_days=28, culprits=None, seed=0, noise=1.0,
             circadian_amplitude=1.2, autocorr=0.45, base=2.5,
-            reading_hours=None, pain_at_meals=True):
-    """→ (observations, meals, truth) in the format expected by model.analyze.
+            reading_hours=None, pain_at_meals=True, medication=None):
+    """→ (observations, meals, medications, truth), as model.analyze expects.
 
     `culprits` holds source (English) food names, translated like CATALOGUE.
+    `medication`, when given, is a (name, lag, amplitude, p_taken) tuple —
+    see DEFAULT_MEDICATION. A negative amplitude relieves pain. It is left
+    out by default so that the `--validate` figures stay comparable.
     """
     rng = np.random.default_rng(seed)
     if culprits is None:
@@ -127,6 +137,15 @@ def generate(n_days=28, culprits=None, seed=0, noise=1.0,
             if name in items:
                 signal += amp * response(t_obs - t_r, lag)
 
+    medications = []
+    if medication is not None:
+        med_name, med_lag, med_amp, p_taken = medication
+        med = _food(med_name)
+        for t_r, _items in meals:
+            if rng.random() < p_taken:          # otherwise the dose is missed
+                medications.append((t_r, [med]))
+                signal += med_amp * response(t_obs - t_r, med_lag)
+
     e = rng.normal(0, noise, len(t_obs))
     for i in range(1, len(e)):
         e[i] += autocorr * e[i - 1]
@@ -134,7 +153,9 @@ def generate(n_days=28, culprits=None, seed=0, noise=1.0,
 
     observations = [(t_obs[i], hours[i], float(y[i])) for i in range(len(t_obs))]
     truth = {_food(n): (lag, amp) for n, lag, amp in culprits}
-    return observations, meals, truth
+    if medication is not None:
+        truth[_food(medication[0])] = (medication[1], medication[2])
+    return observations, meals, medications, truth
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -143,10 +164,10 @@ def _one_diary(params):
     """One replicate (duration, protocol, seed) → raw metrics. Must live at
     module level to be picklable by ProcessPoolExecutor."""
     n_days, hours, threshold, n_replicates, seed = params
-    obs, meals, truth = generate(n_days=n_days, seed=seed,
-                                 reading_hours=hours)
-    res = analyze(obs, meals, n_replicates=n_replicates, threshold=threshold,
-                   seed=seed)
+    obs, meals, meds, truth = generate(n_days=n_days, seed=seed,
+                                       reading_hours=hours)
+    res = analyze(obs, meals, meds, n_replicates=n_replicates,
+                  threshold=threshold, seed=seed)
     if "error" in res:
         return None
     blocks, members, true_foods = res["blocks"], res["members"], set(truth)
@@ -199,10 +220,11 @@ def evaluate(n_seeds=12, n_days=28, n_replicates=120, threshold=None,
     threshold = STABILITY_THRESHOLD if threshold is None else threshold
     recalls, precisions, lag_err, false_pos, n_obs = [], [], [], {}, 0
     for s in range(n_seeds):
-        obs, meals, truth = generate(n_days=n_days, seed=s,
-                                     reading_hours=reading_hours, **kw)
+        obs, meals, meds, truth = generate(n_days=n_days, seed=s,
+                                           reading_hours=reading_hours, **kw)
         n_obs = len(obs)
-        res = analyze(obs, meals, n_replicates=n_replicates, threshold=threshold, seed=s)
+        res = analyze(obs, meals, meds, n_replicates=n_replicates,
+                      threshold=threshold, seed=s)
         if "error" in res:
             continue
         blocks, members, true_foods = res["blocks"], res["members"], set(truth)
@@ -241,29 +263,35 @@ if __name__ == "__main__":
 
 
 def write_diary(path, n_days=42, seed=0,
-                   reading_hours=(7, 10, 13, 16, 19, 22)):
+                   reading_hours=(7, 10, 13, 16, 19, 22),
+                   medication=DEFAULT_MEDICATION):
     """Write a synthetic diary. The format follows the extension: .ods for a
     LibreOffice Calc workbook, CSV otherwise."""
     from datetime import datetime, timedelta, timezone
 
-    obs, meals, truth = generate(n_days=n_days, seed=seed,
-                                 reading_hours=list(reading_hours))
+    obs, meals, meds, truth = generate(n_days=n_days, seed=seed,
+                                       reading_hours=list(reading_hours),
+                                       medication=medication)
     start = datetime(2026, 1, 1, tzinfo=timezone.utc)
     by_time = {round(t, 4): a for t, a in meals}
+    meds_by_time = {round(t, 4): m for t, m in meds}
     names = {8.0: _("breakfast"), 12.5: _("lunch"), 19.0: _("dinner")}
 
     rows = []
     for t, _h, d in obs:
         items = by_time.get(round(t, 4), [])
+        taken = meds_by_time.get(round(t, 4), [])
         slot = min(names, key=lambda k: abs((t % 24) - k))
         rows.append((start + timedelta(hours=float(t)),
                        names[slot] if items else "",
-                       "; ".join(items), int(d)))
+                       "; ".join(items), "; ".join(taken), int(d)))
     rows.sort(key=lambda x: x[0])
 
-    table = [[_("date"), _("time"), _("meal"), _("foods"), _("pain")]]
-    table += [[format_date(ts, format='short', locale=LANG_CODE), ts.strftime("%H:%M"), slot, items, d]
-              for ts, slot, items, d in rows]
+    table = [[_("date"), _("time"), _("meal"), _("foods"), _("medications"),
+              _("pain")]]
+    table += [[format_date(ts, format='short', locale=LANG_CODE),
+               ts.strftime("%H:%M"), slot, items, taken, d]
+              for ts, slot, items, taken, d in rows]
 
     if path.lower().endswith(".ods"):
         from spreadsheet import write_ods
